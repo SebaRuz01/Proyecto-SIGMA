@@ -1,9 +1,11 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import (
     TallerViewSet, UsuarioViewSet,
     ModuloViewSet, ModuloContratadoViewSet,
     TecnicoViewSet, RepuestoViewSet,
-    OrdenTrabajoViewSet, OrdenRepuestoViewSet
+    OrdenTrabajoViewSet, OrdenRepuestoViewSet,
+    OrdenPublicaView
 )
 
 router = DefaultRouter()
@@ -16,4 +18,6 @@ router.register(r'tecnicos', TecnicoViewSet, basename='tecnico')
 router.register(r'repuestos', RepuestoViewSet, basename='repuesto')
 router.register(r'ordenes', OrdenTrabajoViewSet, basename='orden')
 
-urlpatterns = router.urls
+urlpatterns = router.urls + [
+    path('publico/ordenes/<str:codigo>/', OrdenPublicaView.as_view()),
+]

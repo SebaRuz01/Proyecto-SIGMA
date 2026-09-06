@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import uuid
 
 
 class Taller(models.Model):
@@ -91,10 +92,11 @@ class OrdenTrabajo(models.Model):
     ]
 
     taller = models.ForeignKey(Taller, on_delete=models.CASCADE, related_name='ordenes_trabajo')
+    codigo_seguimiento = models.CharField(max_length=12, unique=True, editable=False, blank=True)
     tecnico = models.ForeignKey(Tecnico, on_delete=models.SET_NULL, null=True, blank=True, related_name='ordenes')
     cliente_nombre = models.CharField(max_length=150)
     cliente_telefono = models.CharField(max_length=30, blank=True)
-    equipo = models.CharField(max_length=150)  # ej. "Notebook HP Pavilion"
+    equipo = models.CharField(max_length=150)
     descripcion_problema = models.TextField(blank=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='recibido')
     fecha_recepcion = models.DateTimeField(auto_now_add=True)
@@ -103,6 +105,12 @@ class OrdenTrabajo(models.Model):
 
     def __str__(self):
         return f"OT-{self.id} — {self.equipo} ({self.estado})"
+
+    def save(self, *args, **kwargs):
+        if not self.codigo_seguimiento:
+            self.codigo_seguimiento = uuid.uuid4().hex[:8].upper()
+        super().save(*args, **kwargs)
+    
 
 
 class OrdenRepuesto(models.Model):

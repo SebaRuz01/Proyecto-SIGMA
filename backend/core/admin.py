@@ -10,5 +10,7 @@ admin.site.register(Modulo)
 admin.site.register(ModuloContratado)
 admin.site.register(Tecnico)
 admin.site.register(Repuesto)
-admin.site.register(OrdenTrabajo)
+@admin.register(OrdenTrabajo)
+class OrdenTrabajoAdmin(admin.ModelAdmin):
+    list_display = ['id', 'codigo_seguimiento', 'equipo', 'cliente_nombre', 'estado']
 admin.site.register(OrdenRepuesto)

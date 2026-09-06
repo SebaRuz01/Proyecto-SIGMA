@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Activa el modo oscuro manual basado en la clase .dark inyectada por React */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-base-950: #0A0F1C;
   --color-base-900: #0F1626;
