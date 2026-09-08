@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import os
+=======
+>>>>>>> 2dd7fc896ee552586ccf67d9317ebc02b9a77a3a
 """
 Django settings for config project.
 
@@ -29,7 +32,11 @@ DEBUG = env('DEBUG', default=True, cast=bool)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+<<<<<<< HEAD
 ALLOWED_HOSTS = ['*']
+=======
+ALLOWED_HOSTS = []
+>>>>>>> 2dd7fc896ee552586ccf67d9317ebc02b9a77a3a
 
 AUTH_USER_MODEL = 'core.Usuario'
 
@@ -45,9 +52,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+<<<<<<< HEAD
     
     'corsheaders',
     
+=======
+
+>>>>>>> 2dd7fc896ee552586ccf67d9317ebc02b9a77a3a
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -89,6 +100,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+<<<<<<< HEAD
 
 
 DATABASES = {
@@ -99,6 +111,19 @@ DATABASES = {
         'PASSWORD': os.environ.get('MYSQL_PASSWORD', ''),
         'HOST': os.environ.get('MYSQL_HOST', 'localhost'),
         'PORT': os.environ.get('MYSQL_PORT', '3306'),
+=======
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': env('DB_NAME'),
+        'USER': env('DB_USER'),
+        'PASSWORD': env('DB_PASSWORD'),
+        'HOST': env('DB_HOST'),
+        'PORT': env('DB_PORT'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
+>>>>>>> 2dd7fc896ee552586ccf67d9317ebc02b9a77a3a
     }
 }
 
@@ -149,6 +174,7 @@ MAILERS = {
     },
 }
 
+<<<<<<< HEAD
 CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
@@ -174,6 +200,10 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+=======
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+>>>>>>> 2dd7fc896ee552586ccf67d9317ebc02b9a77a3a
 ]
 
 REST_FRAMEWORK = {

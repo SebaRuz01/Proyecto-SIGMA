@@ -130,7 +130,10 @@ function PanelGeneral() {
                     <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100 dark:border-slate-800/60 transition-colors">Equipo</th>
                     <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100 dark:border-slate-800/60 transition-colors">Cliente</th>
                     <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100 dark:border-slate-800/60 transition-colors">Estado</th>
+<<<<<<< HEAD
                     <th className="px-6 py-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100 dark:border-slate-800/60 transition-colors">Seguimiento</th>
+=======
+>>>>>>> 2dd7fc896ee552586ccf67d9317ebc02b9a77a3a
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 transition-colors">
@@ -151,7 +154,10 @@ function PanelGeneral() {
                           {estadoLabel[o.estado]}
                         </span>
                       </td>
+<<<<<<< HEAD
                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{o.codigo_seguimiento}</td>
+=======
+>>>>>>> 2dd7fc896ee552586ccf67d9317ebc02b9a77a3a
                     </tr>
                   ))}
                 </tbody>
