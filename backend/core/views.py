@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from .utils import enviar_correo_orden
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -118,6 +119,18 @@ class OrdenTrabajoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(taller_id=self.request.user.taller_id)
+
+    def perform_update(self, serializer):
+        orden_actualizada = serializer.save()
+        
+        # Asumiendo que el campo del correo en tu modelo se llama cliente_email
+        if hasattr(orden_actualizada, 'cliente_email') and orden_actualizada.cliente_email:
+            try:
+                enviar_correo_orden(orden_actualizada.cliente_email, orden_actualizada)
+            except Exception as e:
+                print(f"Error al enviar correo automático: {e}")
+
+
 
 
 class OrdenRepuestoViewSet(viewsets.ModelViewSet):

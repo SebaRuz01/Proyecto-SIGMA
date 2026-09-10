@@ -1,4 +1,11 @@
-Django
-djangorestframework
+django
 django-cors-headers
-mysqlclient
+gunicorn
+psycopg2-binary
+dj-database-url
+python-decouple
+djangorestframework
+djangorestframework-simplejwt
+django-filter
+daphne
+channels

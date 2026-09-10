@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import api from '../api/axios'
-import { X, Trash2, Plus, AlertCircle } from 'lucide-react'
+import { X, Trash2, Plus, AlertCircle, Search } from 'lucide-react'
 import { jwtDecode } from 'jwt-decode'
 
 // Colores actualizados con soporte para modo oscuro (dark:)
@@ -31,6 +31,7 @@ function Ordenes() {
   const [repuestoSeleccionado, setRepuestoSeleccionado] = useState('')
   const [cantidadSeleccionada, setCantidadSeleccionada] = useState(1)
   const [errorRepuesto, setErrorRepuesto] = useState('')
+  const [busquedaRepuesto, setBusquedaRepuesto] = useState('')
 
   const token = localStorage.getItem('access_token')
   let rolUsuario = ''
@@ -45,8 +46,12 @@ function Ordenes() {
 
   const [form, setForm] = useState({
     cliente_nombre: '',
+    cliente_rut: '',
     cliente_telefono: '',
+    cliente_email: '',
+    cliente_direccion: '',
     equipo: '',
+    patente: '',
     descripcion_problema: '',
     tecnico: '',
     estado: 'recibido',
@@ -71,7 +76,7 @@ function Ordenes() {
     }
   }
 
-  const cargarOrdenes = () => {
+  const cargarDatos = () => {
     api.get('/ordenes/')
       .then((res) => setOrdenes(res.data))
       .catch((err) => {
@@ -82,45 +87,64 @@ function Ordenes() {
         }
       })
       .finally(() => setCargando(false))
-  }
 
-  useEffect(() => {
-    cargarOrdenes()
-    api.get('/tecnicos/')
-      .then((res) => setTecnicos(res.data))
-      .catch((err) => {
-        if (err.response?.status === 403) setTecnicosBloqueados(true)
-      })
     api.get('/repuestos/')
       .then((res) => setRepuestos(res.data))
       .catch((err) => {
         if (err.response?.status === 403) setRepuestosBloqueados(true)
+      })
+  }
+
+  useEffect(() => {
+    cargarDatos()
+    api.get('/tecnicos/')
+      .then((res) => setTecnicos(res.data))
+      .catch((err) => {
+        if (err.response?.status === 403) setTecnicosBloqueados(true)
       })
   }, [])
 
   const agregarRepuesto = async (ordenId) => {
     setErrorRepuesto('')
     if (!repuestoSeleccionado) return
+
+    const ordenActual = ordenes.find((o) => o.id === ordenId)
+    const repuestoExistente = ordenActual?.repuestos_usados?.find(
+      (r) => r.repuesto === Number(repuestoSeleccionado) || r.repuesto_id === Number(repuestoSeleccionado)
+    )
+
     try {
-      await api.post('/ordenes-repuestos/', {
-        orden: ordenId,
-        repuesto: repuestoSeleccionado,
-        cantidad: cantidadSeleccionada,
-      })
+      if (repuestoExistente) {
+        const nuevaCantidad = repuestoExistente.cantidad + Number(cantidadSeleccionada)
+        await api.patch(`/ordenes-repuestos/${repuestoExistente.id}/`, {
+          cantidad: nuevaCantidad,
+        })
+      } else {
+        await api.post('/ordenes-repuestos/', {
+          orden: ordenId,
+          repuesto: repuestoSeleccionado,
+          cantidad: cantidadSeleccionada,
+        })
+      }
+
       setRepuestoSeleccionado('')
       setCantidadSeleccionada(1)
-      cargarOrdenes()
-      api.get('/repuestos/').then((res) => setRepuestos(res.data))
+      setBusquedaRepuesto('')
+      cargarDatos()
     } catch (err) {
-      setErrorRepuesto(err.response?.data?.[0] || 'No se pudo agregar el repuesto.')
+      const errorMsg = err.response?.data?.non_field_errors?.[0] || 
+                       err.response?.data?.detail || 
+                       err.response?.data?.cantidad?.[0] || 
+                       err.response?.data?.[0] || 
+                       'No se pudo agregar el repuesto (stock insuficiente).'
+      setErrorRepuesto(errorMsg)
     }
   }
 
   const quitarRepuesto = async (ordenRepuestoId) => {
     try {
       await api.delete(`/ordenes-repuestos/${ordenRepuestoId}/`)
-      cargarOrdenes()
-      api.get('/repuestos/').then((res) => setRepuestos(res.data))
+      cargarDatos()
     } catch (err) {
       alert('No se pudo quitar el repuesto.')
     }
@@ -143,8 +167,19 @@ function Ordenes() {
       }
       await api.post('/ordenes/', payload)
       setModalAbierto(false)
-      setForm({ cliente_nombre: '', cliente_telefono: '', equipo: '', descripcion_problema: '', tecnico: '', estado: 'recibido' })
-      cargarOrdenes()
+      setForm({ 
+        cliente_nombre: '', 
+        cliente_rut: '', 
+        cliente_telefono: '', 
+        cliente_email: '', 
+        cliente_direccion: '', 
+        equipo: '', 
+        patente: '', 
+        descripcion_problema: '', 
+        tecnico: '', 
+        estado: 'recibido' 
+      })
+      cargarDatos()
     } catch (err) {
       setErrorForm('No se pudo crear la orden. Revisa los datos.')
     } finally {
@@ -188,6 +223,14 @@ function Ordenes() {
       )
     }
   }
+
+  const repuestosFiltradosSelect = repuestos.filter((r) => {
+    const texto = busquedaRepuesto.toLowerCase()
+    const nombre = r.nombre?.toLowerCase() || ''
+    const modelo = r.modelo?.toLowerCase() || ''
+    const compatibilidades = r.compatibilidades?.toLowerCase() || ''
+    return nombre.includes(texto) || modelo.includes(texto) || compatibilidades.includes(texto)
+  })
 
   return (
     <div className="bg-[#f4f7fb] dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 min-h-screen flex font-sans selection:bg-blue-100 dark:selection:bg-blue-900 selection:text-blue-900 dark:selection:text-blue-100 relative overflow-hidden transition-colors duration-300">
@@ -263,7 +306,7 @@ function Ordenes() {
                         key={o.id}
                         draggable
                         onDragStart={() => handleDragStart(o)}
-                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/50 rounded-2xl p-5 cursor-grab active:cursor-grabbing transition-all group"
+                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/50 rounded-2xl p-5 cursor-grab active:cursor-grabbing transition-all group h-fit w-full"
                       >
                         <div className="flex justify-between items-start mb-3">
                           <span className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider transition-colors">
@@ -282,7 +325,15 @@ function Ordenes() {
                           </div>
                         </div>
                         
-                        <h3 className="font-bold text-slate-800 dark:text-white text-base leading-tight mb-2 transition-colors">{o.equipo}</h3>
+                        <div className="mb-2">
+                          <h3 className="font-bold text-slate-800 dark:text-white text-base leading-tight transition-colors">{o.equipo}</h3>
+                          {o.patente && (
+                            <span className="inline-block mt-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-extrabold px-2 py-0.5 rounded tracking-wide uppercase transition-colors">
+                              Patente: {o.patente}
+                            </span>
+                          )}
+                        </div>
+
                         <p className="text-slate-500 dark:text-slate-400 text-sm mb-4 line-clamp-2 transition-colors">
                           {o.descripcion_problema || 'Sin descripción'}
                         </p>
@@ -290,7 +341,7 @@ function Ordenes() {
                         <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-700/50 transition-colors">
                           <div className="flex items-center justify-between text-xs font-medium">
                             <span className="text-slate-400 dark:text-slate-500">Cliente</span>
-                            <span className="text-slate-700 dark:text-slate-300 transition-colors">{o.cliente_nombre}</span>
+                            <span className="text-slate-700 dark:text-slate-300 font-semibold transition-colors">{o.cliente_nombre}</span>
                           </div>
                           <div className="flex items-center justify-between text-xs font-medium">
                             <span className="text-slate-400 dark:text-slate-500">Técnico</span>
@@ -302,7 +353,10 @@ function Ordenes() {
                         
                         <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-700/50 transition-colors">
                           <button
-                            onClick={() => setOrdenExpandida(ordenExpandida === o.id ? null : o.id)}
+                            onClick={() => {
+                              setOrdenExpandida(ordenExpandida === o.id ? null : o.id)
+                              setBusquedaRepuesto('')
+                            }}
                             className="text-xs font-bold text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors w-full text-left flex items-center justify-between"
                           >
                             {ordenExpandida === o.id ? 'Ocultar repuestos' : `Repuestos utilizados (${o.repuestos_usados?.length || 0})`}
@@ -313,37 +367,57 @@ function Ordenes() {
                             <div className="mt-3 space-y-2 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors">
                               {o.repuestos_usados?.map((r) => (
                                 <div key={r.id} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 shadow-sm transition-colors">
-                                  <span className="font-medium text-slate-700 dark:text-slate-200 transition-colors">{r.repuesto_nombre} <span className="text-slate-400 dark:text-slate-500">x{r.cantidad}</span></span>
-                                  <button onClick={() => quitarRepuesto(r.id)} className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                                  <span className="font-medium text-slate-700 dark:text-slate-200 truncate pr-2 transition-colors">{r.repuesto_nombre} <span className="text-slate-400 dark:text-slate-500">x{r.cantidad}</span></span>
+                                  <button onClick={() => quitarRepuesto(r.id)} className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0">
                                     <X className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               ))}
 
                               {!repuestosBloqueados && (
-                                <div className="flex gap-2 mt-3">
-                                  <select
-                                    value={repuestoSeleccionado}
-                                    onChange={(e) => setRepuestoSeleccionado(e.target.value)}
-                                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 font-medium transition-colors"
-                                  >
-                                    <option value="">Añadir repuesto...</option>
-                                    {repuestos.map((r) => (
-                                      <option key={r.id} value={r.id}>{r.nombre} (Stock: {r.stock_actual})</option>
-                                    ))}
-                                  </select>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    value={cantidadSeleccionada}
-                                    onChange={(e) => setCantidadSeleccionada(Number(e.target.value))}
-                                    className="w-16 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 font-medium text-center transition-colors"
-                                  />
+                                <div className="flex flex-col gap-2 mt-3">
+                                  <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400">
+                                      <Search className="w-3.5 h-3.5" />
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={busquedaRepuesto}
+                                      onChange={(e) => setBusquedaRepuesto(e.target.value)}
+                                      placeholder="Filtrar repuesto..."
+                                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-400 font-medium transition-colors"
+                                    />
+                                  </div>
+
+                                  <div className="flex gap-2">
+                                    <select
+                                      value={repuestoSeleccionado}
+                                      onChange={(e) => setRepuestoSeleccionado(e.target.value)}
+                                      className="w-full min-w-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 font-medium transition-colors"
+                                    >
+                                      <option value="">Seleccionar ({repuestosFiltradosSelect.length})...</option>
+                                      {repuestosFiltradosSelect.map((r) => {
+                                        const compatText = r.compatibilidades ? `(${r.compatibilidades})` : (r.modelo ? `(${r.modelo})` : '(Universal)')
+                                        return (
+                                          <option key={r.id} value={r.id}>
+                                            {r.nombre} {compatText} — Stock: {r.stock_actual}
+                                          </option>
+                                        )
+                                      })}
+                                    </select>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={cantidadSeleccionada}
+                                      onChange={(e) => setCantidadSeleccionada(Number(e.target.value))}
+                                      className="w-14 shrink-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-1 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 font-medium text-center transition-colors"
+                                    />
+                                  </div>
                                   <button
                                     onClick={() => agregarRepuesto(o.id)}
-                                    className="bg-blue-600 hover:bg-blue-700 transition-colors text-white px-3 rounded-lg text-xs font-bold"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 transition-colors text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1"
                                   >
-                                    <Plus className="w-4 h-4" />
+                                    <Plus className="w-3.5 h-3.5" /> Agregar repuesto
                                   </button>
                                 </div>
                               )}
@@ -372,36 +446,90 @@ function Ordenes() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Nombre del cliente</label>
+                    <input
+                      name="cliente_nombre"
+                      value={form.cliente_nombre}
+                      onChange={handleChange}
+                      placeholder="Ej. Juan Pérez"
+                      required
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">RUT del cliente</label>
+                    <input
+                      name="cliente_rut"
+                      value={form.cliente_rut}
+                      onChange={handleChange}
+                      placeholder="Ej. 12.345.678-9"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Nombre del cliente</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Correo electrónico del cliente</label>
                   <input
-                    name="cliente_nombre"
-                    value={form.cliente_nombre}
+                    type="email"
+                    name="cliente_email"
+                    value={form.cliente_email}
                     onChange={handleChange}
+                    placeholder="cliente@correo.com"
                     required
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-medium transition-colors"
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Teléfono (opcional)</label>
-                  <input
-                    name="cliente_telefono"
-                    value={form.cliente_telefono}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-medium transition-colors"
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Teléfono</label>
+                    <input
+                      name="cliente_telefono"
+                      value={form.cliente_telefono}
+                      onChange={handleChange}
+                      placeholder="+569..."
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Dirección</label>
+                    <input
+                      name="cliente_direccion"
+                      value={form.cliente_direccion}
+                      onChange={handleChange}
+                      placeholder="Calle, Comuna"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Equipo / Vehículo</label>
-                  <input
-                    name="equipo"
-                    value={form.equipo}
-                    onChange={handleChange}
-                    placeholder="Ej. Toyota Corolla — Frenos"
-                    required
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-medium transition-colors"
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Vehículo / Equipo</label>
+                    <input
+                      name="equipo"
+                      value={form.equipo}
+                      onChange={handleChange}
+                      placeholder="Ej. Toyota Corolla"
+                      required
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Patente</label>
+                    <input
+                      name="patente"
+                      value={form.patente}
+                      onChange={handleChange}
+                      placeholder="Ej. ABCD-12"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium uppercase transition-colors"
+                    />
+                  </div>
                 </div>
+
                 <div>
                   <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Descripción del problema</label>
                   <textarea
