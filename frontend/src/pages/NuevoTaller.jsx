@@ -13,7 +13,8 @@ function NuevoTaller() {
     nombre_comercial: '',
     rut: '',
     rubro: 'mecánico',
-    direccion: '',
+    calle: '',     // ✅ Reemplazado direccion por calle
+    numero: '',    // ✅ Reemplazado direccion por numero
     estado: 'prueba',
     admin_username: '',
     admin_password: '',
@@ -109,15 +110,31 @@ function NuevoTaller() {
                   className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
                 />
               </div>
-              <div>
-                <label className="text-xs text-muted block mb-1.5">Dirección</label>
-                <input
-                  name="direccion"
-                  value={form.direccion}
-                  onChange={handleChange}
-                  className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
-                />
+              
+              {/* ✅ Sección de Dirección modificada */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="text-xs text-muted block mb-1.5">Calle</label>
+                  <input
+                    name="calle"
+                    value={form.calle}
+                    onChange={handleChange}
+                    required
+                    className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted block mb-1.5">Número</label>
+                  <input
+                    name="numero"
+                    value={form.numero}
+                    onChange={handleChange}
+                    required
+                    className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
+                  />
+                </div>
               </div>
+
             </div>
           </div>
 
