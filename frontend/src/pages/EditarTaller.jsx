@@ -31,11 +31,14 @@ function EditarTaller() {
         nombre_comercial: form.nombre_comercial,
         rut: form.rut,
         rubro: form.rubro,
-        direccion: form.direccion,
         estado: form.estado,
+        calle: form.calle,     // ✅ Enviar calle
+        numero: form.numero    // ✅ Enviar número
       })
       navigate('/super-admin')
     } catch (err) {
+      // Opcional: mostrar un error más detallado en la consola si algo falla
+      console.log(err.response?.data)
       setError('No se pudo guardar. Revisa los datos.')
     } finally {
       setGuardando(false)
@@ -68,7 +71,7 @@ function EditarTaller() {
             <label className="text-xs text-muted block mb-1.5">Nombre comercial</label>
             <input
               name="nombre_comercial"
-              value={form.nombre_comercial}
+              value={form.nombre_comercial || ''}
               onChange={handleChange}
               required
               className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
@@ -79,7 +82,7 @@ function EditarTaller() {
               <label className="text-xs text-muted block mb-1.5">RUT</label>
               <input
                 name="rut"
-                value={form.rut}
+                value={form.rut || ''}
                 onChange={handleChange}
                 required
                 className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
@@ -89,7 +92,7 @@ function EditarTaller() {
               <label className="text-xs text-muted block mb-1.5">Estado</label>
               <select
                 name="estado"
-                value={form.estado}
+                value={form.estado || 'prueba'}
                 onChange={handleChange}
                 className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
               >
@@ -103,20 +106,35 @@ function EditarTaller() {
             <label className="text-xs text-muted block mb-1.5">Rubro</label>
             <input
               name="rubro"
-              value={form.rubro}
+              value={form.rubro || ''}
               onChange={handleChange}
               required
               className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
             />
           </div>
-          <div>
-            <label className="text-xs text-muted block mb-1.5">Dirección</label>
-            <input
-              name="direccion"
-              value={form.direccion}
-              onChange={handleChange}
-              className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
-            />
+
+          {/* ✅ Sección de Dirección reemplazada por Calle y Número */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <label className="text-xs text-muted block mb-1.5">Calle</label>
+              <input
+                name="calle"
+                value={form.calle || ''}
+                onChange={handleChange}
+                required
+                className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted block mb-1.5">Número</label>
+              <input
+                name="numero"
+                value={form.numero || ''}
+                onChange={handleChange}
+                required
+                className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
+              />
+            </div>
           </div>
 
           {error && (
@@ -128,7 +146,7 @@ function EditarTaller() {
           <button
             type="submit"
             disabled={guardando}
-            className="w-full bg-brand hover:bg-brand-dark transition-colors text-white font-semibold py-3 rounded-lg disabled:opacity-60"
+            className="w-full bg-brand hover:bg-brand-dark transition-colors text-white font-semibold py-3 rounded-lg disabled:opacity-60 mt-4"
           >
             {guardando ? 'Guardando...' : 'Guardar cambios'}
           </button>
