@@ -1,7 +1,20 @@
 import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import api from '../api/axios'
-import { Lock, X, Plus, AlertCircle, Award, Wrench, UserCheck, Mail, Phone } from 'lucide-react'
+import { Lock, X, Plus, AlertCircle, Wrench, Mail, Phone, Car } from 'lucide-react'
+
+// Validación de teléfono móvil de Chile (+569XXXXXXXX)
+const validarTelefonoChile = (tel) => {
+  if (!tel) return true
+  const regexTel = /^(\+56)?9[0-9]{8}$/
+  return regexTel.test(tel.replace(/\s+/g, ''))
+}
+
+// Validación de correo electrónico
+const validarEmail = (email) => {
+  const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return regexEmail.test(email)
+}
 
 function Tecnicos() {
   const [tecnicos, setTecnicos] = useState([])
@@ -18,7 +31,7 @@ function Tecnicos() {
     nombre: '',
     apellido: '',
     email: '',
-    telefono: '',
+    telefono: '+569',
     especialidad: '',
   })
 
@@ -36,8 +49,12 @@ function Tecnicos() {
   }
 
   useEffect(() => {
-    cargarTecnicos()
+    cargarDatosTecnicos()
   }, [])
+
+  const cargarDatosTecnicos = () => {
+    cargarTecnicos()
+  }
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -46,17 +63,34 @@ function Tecnicos() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrorForm('')
+
+    if (form.email && !validarEmail(form.email)) {
+      setErrorForm('El correo electrónico no tiene un formato válido.')
+      return
+    }
+
+    if (form.telefono && !validarTelefonoChile(form.telefono)) {
+      setErrorForm('El teléfono debe ser un celular válido de Chile (+569XXXXXXXX).')
+      return
+    }
+
+    if (form.password.length < 8) {
+      setErrorForm('La contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+
     setGuardando(true)
     try {
       await api.post('/tecnicos/', form)
       setModalAbierto(false)
-      setForm({ username: '', password: '', nombre: '', apellido: '', email: '', telefono: '', especialidad: '' })
+      setForm({ username: '', password: '', nombre: '', apellido: '', email: '', telefono: '+569', especialidad: '' })
       cargarTecnicos()
     } catch (err) {
       if (err.response?.data?.username) {
         setErrorForm('Ese nombre de usuario ya existe, elige otro.')
       } else {
-        setErrorForm('No se pudo crear el técnico. Revisa los datos.')
+        const errorMsg = JSON.stringify(err.response?.data) || 'Revisa los datos.'
+        setErrorForm(`No se pudo crear el técnico: ${errorMsg}`)
       }
     } finally {
       setGuardando(false)
@@ -66,7 +100,6 @@ function Tecnicos() {
   return (
     <div className="bg-[#f4f7fb] dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 min-h-screen flex font-sans selection:bg-blue-100 dark:selection:bg-blue-900 selection:text-blue-900 dark:selection:text-blue-100 relative overflow-hidden transition-colors duration-300">
       
-      {/* Fondo decorativo luminoso */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-300/20 dark:bg-blue-900/20 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-[80px] pointer-events-none z-0"></div>
       <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-cyan-300/20 dark:bg-cyan-900/20 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-[80px] pointer-events-none z-0"></div>
 
@@ -74,7 +107,6 @@ function Tecnicos() {
       
       <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full relative z-10 overflow-y-auto h-screen">
         
-        {/* Cabecera */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div>
             <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Recursos Humanos</div>
@@ -121,7 +153,7 @@ function Tecnicos() {
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
             {tecnicos.length === 0 && (
               <div className="md:col-span-2 xl:col-span-3 text-center py-16 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
-                <UserCheck className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                <Wrench className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No hay técnicos registrados todavía.</p>
                 <button onClick={() => setModalAbierto(true)} className="text-blue-600 dark:text-blue-400 font-bold text-xs mt-2 hover:underline">Agregar tu primer técnico</button>
               </div>
@@ -145,7 +177,7 @@ function Tecnicos() {
                   </div>
 
                   {/* Contacto */}
-                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400 mb-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400 mb-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <Mail className="w-3.5 h-3.5 text-slate-400" />
                       <span className="truncate">{t.email || 'Sin correo'}</span>
@@ -154,6 +186,34 @@ function Tecnicos() {
                       <Phone className="w-3.5 h-3.5 text-slate-400" />
                       <span>{t.telefono || 'Sin teléfono'}</span>
                     </div>
+                  </div>
+
+                  {/* Vehículos Asociados con Formato Resaltado */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Car className="w-3.5 h-3.5 text-blue-500" /> Vehículos en reparación / asignados
+                      </span>
+                    </div>
+                    
+                    {t.vehiculos && t.vehiculos.length > 0 ? (
+                      <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                        {t.vehiculos.map((v, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/80 px-3 py-2 rounded-xl text-xs border border-slate-100 dark:border-slate-700/50">
+                            <span className="font-bold text-slate-800 dark:text-white truncate pr-2">
+                              Cliente: <span className="text-blue-600 dark:text-blue-400">{v.cliente_nombre || 'Sin nombre'}</span>
+                            </span>
+                            <span className="bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-mono font-bold px-2 py-0.5 rounded-lg text-[10px] shrink-0">
+                              {v.modelo || 'Vehículo'} : {v.patente}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 italic bg-slate-50/50 dark:bg-slate-800/30 p-2.5 rounded-xl text-center">
+                        Sin vehículos asociados actualmente.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -166,7 +226,10 @@ function Tecnicos() {
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center px-4 z-50">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-[500px] p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-extrabold text-xl text-slate-800 dark:text-white">Agregar nuevo técnico</h2>
+                <div>
+                  <h2 className="font-extrabold text-xl text-slate-800 dark:text-white">Agregar nuevo técnico</h2>
+                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full">🇨🇱 Validación Chile activa</span>
+                </div>
                 <button onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-full transition-colors">
                   <X className="w-5 h-5" />
                 </button>
@@ -205,17 +268,19 @@ function Tecnicos() {
                       name="email"
                       value={form.email}
                       onChange={handleChange}
-                      placeholder="carlos@taller.com"
+                      placeholder="carlos@taller.cl"
+                      required
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5">Teléfono</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5">Teléfono (Chile)</label>
                     <input
                       name="telefono"
                       value={form.telefono}
                       onChange={handleChange}
-                      placeholder="+569..."
+                      placeholder="+56912345678"
+                      required
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
                     />
                   </div>
@@ -234,7 +299,7 @@ function Tecnicos() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5">Contraseña</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5">Contraseña (mín. 8 caracteres)</label>
                     <input
                       name="password"
                       type="password"

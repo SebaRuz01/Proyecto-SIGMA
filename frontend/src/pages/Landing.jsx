@@ -24,28 +24,43 @@ function Landing() {
     }
   }
 
+  // Función para desplazamiento suave controlado
+  const scrollToSection = (e, id) => {
+    e.preventDefault()
+    if (id === '#') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    const element = document.querySelector(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
-    <div className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-sans transition-colors duration-300">
+    <div className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen font-sans transition-colors duration-300 scroll-smooth">
       
       {/* HEADER / NAVEGACIÓN */}
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           
-          <div className="flex items-center gap-3">
+          {/* Logo y Nombre */}
+          <div className="flex items-center gap-3 shrink-0">
             <img src={logo} alt="SIGMA Logo" className="h-9 w-auto" />
             <span className="font-extrabold text-2xl tracking-wider bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               SIGMA
             </span>
           </div>
           
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
-            <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Inicio</a>
-            <a href="#modulos" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Soluciones</a>
-            <a href="#seguimiento" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Portal Clientes</a>
+          {/* Enlaces Centrados */}
+          <nav className="hidden md:flex items-center justify-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300 flex-1 px-8">
+            <a href="#" onClick={(e) => scrollToSection(e, '#')} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Inicio</a>
+            <a href="#modulos" onClick={(e) => scrollToSection(e, '#modulos')} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Soluciones</a>
+            <a href="#seguimiento" onClick={(e) => scrollToSection(e, '#seguimiento')} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Seguimiento</a>
           </nav>
           
-          <div className="flex items-center gap-4">
-            {/* Botón Modo Oscuro */}
+          {/* Botones de Acción */}
+          <div className="flex items-center gap-4 shrink-0">
             <button 
               onClick={() => setDarkMode(!darkMode)}
               className="p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
@@ -61,9 +76,12 @@ function Landing() {
               Iniciar Sesión
             </Link>
             
-            <button className="bg-blue-600 hover:bg-blue-700 transition-all text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 active:scale-95">
+            <Link 
+              to="/login"
+              className="bg-blue-600 hover:bg-blue-700 transition-all text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 text-center inline-block"
+            >
               Acceso Taller
-            </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -71,11 +89,6 @@ function Landing() {
       {/* HERO SECTION */}
       <section className="relative overflow-hidden pt-20 pb-24 px-6">
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-semibold mb-6">
-            <Wrench className="w-3.5 h-3.5" /> La plataforma definitiva para talleres mecánicos
-          </div>
-
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1] mb-6">
             Control total de tu taller, <br className="hidden sm:inline" />
             <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -90,12 +103,14 @@ function Landing() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a 
               href="#seguimiento" 
+              onClick={(e) => scrollToSection(e, '#seguimiento')}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl shadow-xl shadow-blue-600/20 transition-all text-center"
             >
               Rastrear mi Vehículo
             </a>
             <a 
               href="#modulos" 
+              onClick={(e) => scrollToSection(e, '#modulos')}
               className="w-full sm:w-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold px-8 py-4 rounded-xl transition-all text-center"
             >
               Conocer Módulos
@@ -117,14 +132,10 @@ function Landing() {
       {/* SECCIÓN DE MÓDULOS / CARACTERÍSTICAS */}
       <section id="modulos" className="py-24 px-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 transition-colors">
         <div className="max-w-6xl mx-auto">
-          
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-              Diseñado para el flujo real de un taller
+              Módulos Implementados
             </h2>
-            <p className="text-slate-600 dark:text-slate-400">
-              Cada herramienta en SIGMA está pensada para ahorrar tiempo y eliminar errores humanos en el día a día.
-            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

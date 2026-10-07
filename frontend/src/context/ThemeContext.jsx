@@ -3,11 +3,10 @@ import { createContext, useEffect, useState, useContext } from 'react';
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
-  // Busca el tema en localStorage, o usa el del sistema por defecto
-  const [theme, setTheme] = useState(
-    localStorage.getItem('theme') || 
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-  );
+  // Configurado para usar 'dark' por defecto si no hay nada guardado en localStorage
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'dark';
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;

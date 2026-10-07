@@ -3,18 +3,22 @@ import { useNavigate, Link } from 'react-router-dom'
 import api from '../api/axios'
 import logoIcono from '../assets/logo.png'
 import { ArrowLeft } from 'lucide-react'
+import datosChile from '../utils/regiones.json' // <-- IMPORTAMOS EL JSON LOCAL
 
 function NuevoTaller() {
   const navigate = useNavigate()
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [comunasDisponibles, setComunasDisponibles] = useState([]) // Solo necesitamos guardar las comunas filtradas
 
   const [form, setForm] = useState({
     nombre_comercial: '',
     rut: '',
     rubro: 'mecánico',
-    calle: '',     // ✅ Reemplazado direccion por calle
-    numero: '',    // ✅ Reemplazado direccion por numero
+    calle: '',
+    numero: '',
+    comuna_nombre: '',
+    comuna_region: '',
     estado: 'prueba',
     admin_username: '',
     admin_password: '',
@@ -24,6 +28,22 @@ function NuevoTaller() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  // MANEJADOR DE REGIÓN INSTANTÁNEO
+  const handleRegionChange = (e) => {
+    const regionElegida = e.target.value
+    
+    // 1. Guardamos la región y limpiamos la comuna
+    setForm({ ...form, comuna_region: regionElegida, comuna_nombre: '' })
+    
+    // 2. Buscamos las comunas de esa región en nuestro JSON local
+    if (regionElegida) {
+      const regionData = datosChile.regiones.find(r => r.region === regionElegida)
+      setComunasDisponibles(regionData ? regionData.comunas : [])
+    } else {
+      setComunasDisponibles([])
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -110,15 +130,15 @@ function NuevoTaller() {
                   className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
                 />
               </div>
-              
-              {/* ✅ Sección de Dirección modificada */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="text-xs text-muted block mb-1.5">Calle</label>
                   <input
                     name="calle"
                     value={form.calle}
                     onChange={handleChange}
+                    placeholder="Ej: Av. Pajaritos"
                     required
                     className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
                   />
@@ -129,11 +149,47 @@ function NuevoTaller() {
                     name="numero"
                     value={form.numero}
                     onChange={handleChange}
+                    placeholder="Ej: 1234"
                     required
                     className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
                   />
                 </div>
               </div>
+
+              {/* SELECTS ALIMENTADOS POR EL JSON LOCAL */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted block mb-1.5">Región</label>
+                  <select
+                    value={form.comuna_region}
+                    onChange={handleRegionChange}
+                    required
+                    className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
+                  >
+                    <option value="">Selecciona región...</option>
+                    {datosChile.regiones.map(r => (
+                      <option key={r.region} value={r.region}>{r.region}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted block mb-1.5">Comuna</label>
+                  <select
+                    name="comuna_nombre"
+                    value={form.comuna_nombre}
+                    onChange={handleChange}
+                    required
+                    disabled={!form.comuna_region}
+                    className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Selecciona comuna...</option>
+                    {comunasDisponibles.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* FIN SELECTS */}
 
             </div>
           </div>

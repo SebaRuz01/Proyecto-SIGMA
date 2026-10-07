@@ -1,32 +1,29 @@
 import axios from 'axios'
 
-const LOCAL_URL = 'http://127.0.0.1:8000/api'
+const PROD_URL = 'https://bd-sigma.onrender.com/api'
 
 const api = axios.create({
-  baseURL: LOCAL_URL,
+  baseURL: PROD_URL,
 })
-
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
-  return config
-})
 
+  // Asegura que cualquier petición local sea redirigida automáticamente al servidor online
+  if (config.url) {
+    config.url = config.url
+      .replace('http://127.0.0.1:8000/api', PROD_URL)
+      .replace('http://localhost:8000/api', PROD_URL)
+      .replace('http://127.0.0.1:8000', 'https://bd-sigma.onrender.com')
+      .replace('http://localhost:8000', 'https://bd-sigma.onrender.com')
+  }
 
-axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  
-  if (config.url && config.url.includes('bd-sigma.onrender.com')) {
-    config.url = config.url.replace('https://bd-sigma.onrender.com/api', LOCAL_URL)
-  }
-  
   return config
+}, (error) => {
+  return Promise.reject(error)
 })
 
 export default api
