@@ -4,6 +4,7 @@ import api from '../api/axios'
 import { X, Trash2, Plus, AlertCircle, Search, ChevronLeft, ChevronRight, Sparkles, Mail } from 'lucide-react'
 import { jwtDecode } from 'jwt-decode'
 import datosChile from '../utils/regiones.json'
+import vehiculosData from '../utils/vehiculos_chile.json'
 
 const ESTADOS = [
   { key: 'recibido', titulo: 'Recibido', bgHeader: 'bg-slate-100 dark:bg-slate-800/60', textHeader: 'text-slate-600 dark:text-slate-300', borderHeader: 'border-slate-200 dark:border-slate-700/60' },
@@ -58,10 +59,11 @@ function Ordenes() {
   const [enviandoCorreo, setEnviandoCorreo] = useState(null)
   const [comunasDisponibles, setComunasDisponibles] = useState([])
   
+  const [modelosDisponibles, setModelosDisponibles] = useState([])
+  
   const [paginaGlobal, setPaginaGlobal] = useState(1)
   const porPagina = 3
 
-  // VERIFICACIÓN DE ROLES EXACTOS
   const token = localStorage.getItem('access_token')
   let rolUsuario = ''
   if (token) {
@@ -74,8 +76,6 @@ function Ordenes() {
   
   const esAdminTaller = rolUsuario === 'admin_taller'
   const esTecnico = rolUsuario === 'tecnico'
-  
-  // Agrupamos el permiso para mover tarjetas (Drag & Drop)
   const puedeMover = esAdminTaller || esTecnico
 
   const [form, setForm] = useState({
@@ -87,8 +87,10 @@ function Ordenes() {
     cliente_numero: '',
     cliente_region: '',
     cliente_comuna: '',
-    equipo: '',
+    marca: '',
+    modelo: '',
     vehiculo_patente: '',
+    vehiculo_anio: '',
     descripcion_problema: '',
     tecnico: '',
     estado: 'recibido',
@@ -104,6 +106,14 @@ function Ordenes() {
     } else {
       setComunasDisponibles([])
     }
+  }
+
+  const handleMarcaChange = (e) => {
+    const marcaElegida = e.target.value
+    const marcaObj = vehiculosData.find(v => v.marca === marcaElegida)
+    
+    setModelosDisponibles(marcaObj ? marcaObj.modelos : [])
+    setForm({ ...form, marca: marcaElegida, modelo: '' })
   }
 
   const pedirConfirmacionEliminar = (orden, e) => {
@@ -296,13 +306,16 @@ function Ordenes() {
         cliente_numero: '', 
         cliente_region: '',
         cliente_comuna: '',
-        equipo: '', 
+        marca: '',
+        modelo: '',
         vehiculo_patente: '', 
+        vehiculo_anio: '',
         descripcion_problema: '', 
         tecnico: '', 
         estado: 'recibido' 
       })
       setComunasDisponibles([])
+      setModelosDisponibles([])
       cargarDatos()
     } catch (err) {
       const errorMsg = JSON.stringify(err.response?.data) || 'Revisa los datos.'
@@ -357,7 +370,10 @@ function Ordenes() {
     return nombre.includes(texto) || modelo.includes(texto) || compatibilidades.includes(texto)
   })
 
+  // FILTRO: Oculta órdenes sin técnico asignado del Kanban principal
   const ordenesFiltradas = ordenes.filter((o) => {
+    if (!o.tecnico) return false
+
     if (!busquedaOrden.trim()) return true
     const codigoOT = `ot-${o.id}`
     const query = busquedaOrden.trim().toLowerCase()
@@ -428,7 +444,6 @@ function Ordenes() {
               )}
             </div>
 
-            {/* SÓLO EL ADMIN TALLER PUEDE CREAR ÓRDENES */}
             {esAdminTaller && (
               <button
                 onClick={() => setModalAbierto(true)}
@@ -506,7 +521,6 @@ function Ordenes() {
                                 OT-{o.id.toString().padStart(3, '0')}
                               </span>
                               <div className="flex items-center gap-2">
-                                {/* SÓLO EL ADMIN TALLER PUEDE ELIMINAR */}
                                 {esAdminTaller && (
                                   <button
                                     onClick={(e) => pedirConfirmacionEliminar(o, e)}
@@ -520,7 +534,10 @@ function Ordenes() {
                             </div>
                             
                             <div className="mb-1.5">
-                              <h3 className="font-bold text-slate-800 dark:text-white text-sm leading-tight transition-colors">{o.equipo}</h3>
+                              {/* Título de la tarjeta mostrando el modelo y el año del vehículo */}
+                              <h3 className="font-bold text-slate-800 dark:text-white text-sm leading-tight transition-colors">
+                                {o.equipo} {o.vehiculo_anio ? `(${o.vehiculo_anio})` : ''}
+                              </h3>
                               {o.vehiculo_patente && (
                                 <span className="inline-block mt-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-extrabold px-1.5 py-0.2 rounded tracking-wide uppercase transition-colors">
                                   Patente: {o.vehiculo_patente}
@@ -556,7 +573,6 @@ function Ordenes() {
                                           {formatearFechaCorta(o.fecha_estimada)}
                                         </span>
                                       </div>
-                                      {/* ENVIAR CORREO SÓLO ADMIN */}
                                       {esAdminTaller && (
                                         <button
                                           onClick={(e) => enviarCorreoCliente(o, e)}
@@ -657,7 +673,6 @@ function Ordenes() {
                               )}
                             </div>
 
-                            {/* SÓLO EL ADMIN TALLER PUEDE ENTREGAR Y FINALIZAR EL FLUJO */}
                             {col.key === 'listo' && esAdminTaller && (
                               <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50">
                                 <button
@@ -777,12 +792,46 @@ function Ordenes() {
 
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Modelo del vehículo</label>
-                    <input name="equipo" value={form.equipo} onChange={handleChange} placeholder="Ej. Toyota Corolla" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" />
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Marca</label>
+                    <select 
+                      name="marca"
+                      value={form.marca} 
+                      onChange={handleMarcaChange} 
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
+                      required
+                    >
+                      <option value="">Selecciona marca...</option>
+                      {vehiculosData.map((item, index) => (
+                        <option key={index} value={item.marca}>{item.marca}</option>
+                      ))}
+                    </select>
                   </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Modelo</label>
+                    <select 
+                      name="modelo" 
+                      value={form.modelo} 
+                      onChange={handleChange} 
+                      disabled={!form.marca} 
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-40"
+                      required
+                    >
+                      <option value="">Selecciona modelo...</option>
+                      {modelosDisponibles.map((mod, index) => (
+                        <option key={index} value={mod}>{mod}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Patente (Chile)</label>
                     <input name="vehiculo_patente" value={form.vehiculo_patente} onChange={handleChange} placeholder="Ej. ABCD12 o AB1234" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium uppercase transition-colors" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Año</label>
+                    <input type="number" name="vehiculo_anio" value={form.vehiculo_anio} onChange={handleChange} placeholder="Ej. 2021" min="1950" max="2026" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" />
                   </div>
                 </div>
 
@@ -821,7 +870,6 @@ function Ordenes() {
           </div>
         )}
 
-        {/* MODAL CONFIRMAR ELIMINACIÓN: SÓLO ADMINS */}
         {ordenAEliminar && esAdminTaller && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center px-4 z-50">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center transition-colors">

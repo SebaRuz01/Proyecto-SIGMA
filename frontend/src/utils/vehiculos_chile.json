@@ -1,0 +1,206 @@
+[
+  {
+    "marca": "Toyota",
+    "modelos": ["Corolla", "Yaris", "Hilux", "RAV4", "Agya", "Rush", "Land Cruiser", "Prado", "Fortuner", "Tacoma", "Tundra", "Prius", "C-HR", "Sienta", "Urban Cruiser", "Camry", "Supra", "Avanza"]
+  },
+  {
+    "marca": "Chevrolet",
+    "modelos": ["Sail", "Onix", "Tracker", "Groove", "Captiva", "N400", "Silverado", "Colorado", "Tahoe", "Suburban", "Blazer", "Camaro", "Corvette", "Equinox", "Traverse", "Spark", "Sonic", "Cruze"]
+  },
+  {
+    "marca": "Nissan",
+    "modelos": ["Versa", "Kicks", "Navara", "Sentra", "Qashqai", "X-Trail", "Pathfinder", "Murano", "Terrano", "March", "Note", "Patrol", "Frontier", "Juke", "Leaf", "Versa Note"]
+  },
+  {
+    "marca": "Hyundai",
+    "modelos": ["Accent", "Grand i10", "Tucson", "Elantra", "Santa Fe", "Porter", "Creta", "Palisade", "Staria", "Ioniq", "Veloster", "Sonata", "Kona", "Venue", "H-1", "Galloper"]
+  },
+  {
+    "marca": "Suzuki",
+    "modelos": ["Swift", "Baleno", "Alto", "Vitara", "Grand Vitara", "S-Presso", "Eeco", "Jimny", "Ignis", "Celerio", "Ertiga", "XL7", "APV", "SX4", "Grand Nomade"]
+  },
+  {
+    "marca": "Kia",
+    "modelos": ["Morning", "Rio", "Soluto", "Sportage", "Seltos", "Cerato", "Sorento", "Carnival", "Niro", "Sonet", "K2500", "Telluride", "Soul", "Carens", "Optima", "Stinger", "Ev6"]
+  },
+  {
+    "marca": "Mazda",
+    "modelos": ["Mazda 3", "Mazda 6", "CX-3", "CX-5", "CX-30", "CX-9", "CX-50", "BT-50", "MX-5", "CX-60", "CX-90", "Mazda 2"]
+  },
+  {
+    "marca": "Peugeot",
+    "modelos": ["208", "3008", "Partner", "2008", "5008", "308", "508", "Expert", "Boxer", "Landtrek", "207", "307", "407", "Rifter"]
+  },
+  {
+    "marca": "MG",
+    "modelos": ["MG 3", "MG 5", "ZS", "RX5", "HS", "GT", "RX8", "Cyberster", "Marvel R", "EP", "ZS EV"]
+  },
+  {
+    "marca": "Chery",
+    "modelos": ["Tiggo 2", "Tiggo 2 Pro", "Tiggo 3", "Tiggo 4 Pro", "Tiggo 7 Pro", "Tiggo 8 Pro", "Arrizo 3", "Arrizo 5", "Fulwin", "QQ"]
+  },
+  {
+    "marca": "JAC",
+    "modelos": ["JS2", "JS3", "JS4", "JS8", "T6", "T8", "T8 Pro", "Sunray", "S2", "S3", "S4", "iEV7S"]
+  },
+  {
+    "marca": "Great Wall",
+    "modelos": ["Poer", "Wingle 5", "Wingle 7", "Haval H6", "Haval Jolion", "Haval Dargo", "Haval H3", "Haval H5", "Coolbear"]
+  },
+  {
+    "marca": "Ford",
+    "modelos": ["Ranger", "F-150", "Explorer", "Escape", "Territory", "Edge", "Mustang", "Bronco", "Transit", "EcoSport", "Fiesta", "Focus", "Expedition", "Maverick"]
+  },
+  {
+    "marca": "Volkswagen",
+    "modelos": ["Gol", "Voyage", "Polo", "Virtus", "T-Cross", "Nivus", "Taos", "Tiguan", "Amarok", "Saveiro", "Golf", "Jetta", "Passat", "Bora", "Transporter", "Crafter", "ID.4"]
+  },
+  {
+    "marca": "Subaru",
+    "modelos": ["Forester", "Outback", "XV", "Crosstrek", "Impreza", "Legacy", "Evoltis", "WRX", "Tribeca", "BRZ"]
+  },
+  {
+    "marca": "Renault",
+    "modelos": ["Clio", "Captur", "Duster", "Koleos", "Oroch", "Alaskan", "Kangoo", "Stepway", "Megane", "Symbol", "Fluence", "Sandero"]
+  },
+  {
+    "marca": "Citroën",
+    "modelos": ["C3", "C3 Aircross", "C4", "C5 Aircross", "Berlingo", "Jumper", "C-Elysée", "Xsara Picasso", "C4 Cactus"]
+  },
+  {
+    "marca": "Fiat",
+    "modelos": ["Cronos", "Argo", "Pulse", "Fastback", "Fiorino", "Strada", "Ducato", "Qubo", "Palio", "Siena", "Punto", "Linea", "Doblo", "Toro"]
+  },
+  {
+    "marca": "Jeep",
+    "modelos": ["Renegade", "Compass", "Grand Cherokee", "Wrangler", "Gladiator", "Commander", "Cherokee", "Liberty", "Patriot"]
+  },
+  {
+    "marca": "Changan",
+    "modelos": ["CS15", "CS35 Plus", "CS55 Plus", "CS75 Plus", "UNI-T", "UNI-K", "Hunter", "Alsvin", "CX70", "Benni"]
+  },
+  {
+    "marca": "SsangYong",
+    "modelos": ["Actyon Sports", "Musso", "Tivoli", "Korando", "Rexton", "Kyron", "Stavic", "Grand Musso"]
+  },
+  {
+    "marca": "Mitsubishi",
+    "modelos": ["L200", "Montero", "Outlander", "ASX", "Eclipse Cross", "Katana", "Lancer", "Mirage", "Space Wagon", "Grandis"]
+  },
+  {
+    "marca": "Audi",
+    "modelos": ["A1", "A3", "A4", "A5", "A6", "Q2", "Q3", "Q5", "Q7", "Q8", "TT", "R8", "e-tron"]
+  },
+  {
+    "marca": "BMW",
+    "modelos": ["Serie 1", "Serie 2", "Serie 3", "Serie 4", "Serie 5", "X1", "X3", "X4", "X5", "X6", "X7", "i3", "i4", "iX"]
+  },
+  {
+    "marca": "Mercedes-Benz",
+    "modelos": ["Clase A", "Clase C", "Clase E", "Clase S", "GLA", "GLB", "GLC", "GLE", "GLS", "Sprinter", "Vito", "Citan"]
+  },
+  {
+    "marca": "Chery",
+    "modelos": ["Tiggo 2", "Tiggo 3", "Tiggo 5", "Tiggo 7", "Tiggo 8"]
+  },
+  {
+    "marca": "Geely",
+    "modelos": ["Coolray", "Azkarra", "Tugella", "GC7", "LC", "Emgrand"]
+  },
+  {
+    "marca": "Maxus",
+    "modelos": ["T60", "T70", "T90", "D60", "D90", "V80", "V90", "EUNIQ 6"]
+  },
+  {
+    "marca": "DFSK",
+    "modelos": ["Glory 580", "Glory 560", "Glory IX5", "EC35", "C31", "C32", "K01"]
+  },
+  {
+    "marca": "Foton",
+    "modelos": ["Tunland", "View", "Toano", "Aumark", "Midi"]
+  },
+  {
+    "marca": "Honda",
+    "modelos": ["Civic", "Accord", "CR-V", "HR-V", "Pilot", "Fit", "City", "WR-V"]
+  },
+  {
+    "marca": "Dodge",
+    "modelos": ["Durango", "Ram 700", "Journey", "Charger", "Challenger", "Caliber", "Nitro"]
+  },
+  {
+    "marca": "Ram",
+    "modelos": ["1500", "2500", "700", "1200", "ProMaster"]
+  },
+  {
+    "marca": "Cadillac",
+    "modelos": ["Escalade", "XT5", "XT6"]
+  },
+  {
+    "marca": "Alfa Romeo",
+    "modelos": ["Giulia", "Stelvio", "Giulietta", "MiTo"]
+  },
+  {
+    "marca": "Volvo",
+    "modelos": ["XC40", "XC60", "XC90", "S60", "S90", "V40", "EX30", "EX90"]
+  },
+  {
+    "marca": "Skoda",
+    "modelos": ["Octavia", "Fabia", "Superb", "Kodiaq", "Karoq", "Kamiq"]
+  },
+  {
+    "marca": "Seat",
+    "modelos": ["Ibiza", "Leon", "Arona", "Ateca"]
+  },
+  {
+    "marca": "Porsche",
+    "modelos": ["Cayenne", "Macan", "Panamera", "911", "Taycan", "Boxster", "Cayman"]
+  },
+  {
+    "marca": "Mini",
+    "modelos": ["Cooper", "Countryman", "Clubman", "Paceman"]
+  },
+  {
+    "marca": "Land Rover",
+    "modelos": ["Defender", "Discovery", "Discovery Sport", "Range Rover", "Range Rover Evoque", "Range Rover Velar", "Range Rover Sport"]
+  },
+  {
+    "marca": "Lexus",
+    "modelos": ["RX", "NX", "UX", "ES", "IS", "GX", "LX"]
+  },
+  {
+    "marca": "BYD",
+    "modelos": ["Song Plus", "Yuan Plus", "Han", "Tang", "Qin", "Dolphin", "Seagull"]
+  },
+  {
+    "marca": "GAC",
+    "modelos": ["GS3", "GS4", "GS8", "Empkoo", "Emkoo"]
+  },
+  {
+    "marca": "Jetour",
+    "modelos": ["X70", "X70 Plus", "Dashing", "X90 Plus"]
+  },
+  {
+    "marca": "Omoda",
+    "modelos": ["Omoda 5", "Omoda C5"]
+  },
+  {
+    "marca": "Jaecoo",
+    "modelos": ["Jaecoo 7", "Jaecoo 8"]
+  },
+  {
+    "marca": "Exeed",
+    "modelos": ["LX", "TXL", "RX", "VX"]
+  },
+  {
+    "marca": "Baic",
+    "modelos": ["X35", "X55", "X7", "BJ40"]
+  },
+  {
+    "marca": "ZNA",
+    "modelos": ["Rich", "Rich 6", "Suv Yumsun"]
+  },
+  {
+    "marca": "JMC",
+    "modelos": ["Vigus", "Vigus Pro", "Grand Avenue", "Boarding"]
+  }
+]
