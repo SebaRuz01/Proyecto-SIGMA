@@ -61,6 +61,7 @@ function Ordenes() {
   const [paginaGlobal, setPaginaGlobal] = useState(1)
   const porPagina = 3
 
+  // VERIFICACIÓN DE ROLES EXACTOS
   const token = localStorage.getItem('access_token')
   let rolUsuario = ''
   if (token) {
@@ -70,7 +71,12 @@ function Ordenes() {
       rolUsuario = ''
     }
   }
-  const puedeEliminar = rolUsuario === 'admin_taller' || rolUsuario === 'super_admin'
+  
+  const esAdminTaller = rolUsuario === 'admin_taller'
+  const esTecnico = rolUsuario === 'tecnico'
+  
+  // Agrupamos el permiso para mover tarjetas (Drag & Drop)
+  const puedeMover = esAdminTaller || esTecnico
 
   const [form, setForm] = useState({
     cliente_nombre: '',
@@ -127,7 +133,7 @@ function Ordenes() {
       })
       .catch((err) => {
         if (err.response?.status === 403) {
-          setError('Tu taller no tiene contratado el módulo de Órdenes.')
+          setError('No tienes permisos para ver este módulo.')
         } else {
           setError('No se pudieron cargar las órdenes.')
         }
@@ -312,7 +318,7 @@ function Ordenes() {
 
   const handleDragOver = (e, columnaKey) => {
     e.preventDefault()
-    setColumnaSobre(columnaKey)
+    if (puedeMover) setColumnaSobre(columnaKey)
   }
 
   const handleDragLeave = () => {
@@ -321,7 +327,7 @@ function Ordenes() {
 
   const handleDrop = async (nuevoEstado) => {
     setColumnaSobre(null)
-    if (!ordenArrastrada || ordenArrastrada.estado === nuevoEstado) {
+    if (!puedeMover || !ordenArrastrada || ordenArrastrada.estado === nuevoEstado) {
       setOrdenArrastrada(null)
       return
     }
@@ -393,7 +399,9 @@ function Ordenes() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div>
             <h1 className="font-extrabold text-3xl text-slate-800 dark:text-white tracking-tight transition-colors">Órdenes de trabajo</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium transition-colors">Gestiona y mueve las órdenes arrastrando las tarjetas.</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium transition-colors">
+              {puedeMover ? 'Gestiona y mueve las órdenes arrastrando las tarjetas.' : 'Visualiza las órdenes y gestiona los repuestos del vehículo.'}
+            </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative">
@@ -420,13 +428,16 @@ function Ordenes() {
               )}
             </div>
 
-            <button
-              onClick={() => setModalAbierto(true)}
-              className="bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 text-white text-sm font-bold px-5 py-2.5 rounded-full flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Nueva orden
-            </button>
+            {/* SÓLO EL ADMIN TALLER PUEDE CREAR ÓRDENES */}
+            {esAdminTaller && (
+              <button
+                onClick={() => setModalAbierto(true)}
+                className="bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 text-white text-sm font-bold px-5 py-2.5 rounded-full flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Nueva orden
+              </button>
+            )}
           </div>
         </div>
 
@@ -449,15 +460,15 @@ function Ordenes() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start pb-6">
               {ESTADOS.map((col) => {
                 const ordenesCol = ordenesFiltradas.filter((o) => o.estado === col.key)
-                const esDestino = columnaSobre === col.key
+                const esDestino = columnaSobre === col.key && puedeMover
                 const ordenesPaginadas = ordenesCol.slice(inicioGlobal, finGlobal)
 
                 return (
                   <div
                     key={col.key}
-                    onDragOver={(e) => handleDragOver(e, col.key)}
+                    onDragOver={(e) => { if (puedeMover) handleDragOver(e, col.key) }}
                     onDragLeave={handleDragLeave}
-                    onDrop={() => handleDrop(col.key)}
+                    onDrop={() => { if (puedeMover) handleDrop(col.key) }}
                     className={`bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border rounded-3xl p-4 flex flex-col transition-all duration-200 ${
                       esDestino 
                         ? 'border-blue-400 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-lg shadow-blue-100 dark:shadow-none' 
@@ -480,16 +491,23 @@ function Ordenes() {
                         ordenesPaginadas.map((o) => (
                           <div
                             key={o.id}
-                            draggable
-                            onDragStart={() => handleDragStart(o)}
-                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/50 rounded-2xl p-3.5 cursor-grab active:cursor-grabbing transition-all group w-full flex flex-col"
+                            draggable={puedeMover}
+                            onDragStart={(e) => {
+                              if (!puedeMover) {
+                                e.preventDefault()
+                                return
+                              }
+                              handleDragStart(o)
+                            }}
+                            className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm transition-all group w-full flex flex-col ${puedeMover ? 'hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500/50 cursor-grab active:cursor-grabbing' : 'cursor-default'} rounded-2xl p-3.5`}
                           >
                             <div className="flex justify-between items-start mb-2">
                               <span className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wider transition-colors">
                                 OT-{o.id.toString().padStart(3, '0')}
                               </span>
                               <div className="flex items-center gap-2">
-                                {puedeEliminar && (
+                                {/* SÓLO EL ADMIN TALLER PUEDE ELIMINAR */}
+                                {esAdminTaller && (
                                   <button
                                     onClick={(e) => pedirConfirmacionEliminar(o, e)}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md cursor-pointer"
@@ -526,7 +544,6 @@ function Ordenes() {
                                 </span>
                               </div>
                               
-                              {/* SECCIÓN DE IA: SOLO APARECE SI ESTÁ EN DIAGNÓSTICO, EN REPARACIÓN O LISTO, Y YA TIENE REPUESTOS */}
                               {['diagnostico', 'en_reparacion', 'listo'].includes(o.estado?.toLowerCase()) && (o.repuestos_usados?.length > 0) && (
                                 <>
                                   {o.fecha_estimada ? (
@@ -539,13 +556,16 @@ function Ordenes() {
                                           {formatearFechaCorta(o.fecha_estimada)}
                                         </span>
                                       </div>
-                                      <button
-                                        onClick={(e) => enviarCorreoCliente(o, e)}
-                                        disabled={enviandoCorreo === o.id}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
-                                      >
-                                        <Mail className="w-3 h-3" /> {enviandoCorreo === o.id ? 'Enviando...' : 'Notificar al cliente (Email)'}
-                                      </button>
+                                      {/* ENVIAR CORREO SÓLO ADMIN */}
+                                      {esAdminTaller && (
+                                        <button
+                                          onClick={(e) => enviarCorreoCliente(o, e)}
+                                          disabled={enviandoCorreo === o.id}
+                                          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
+                                        >
+                                          <Mail className="w-3 h-3" /> {enviandoCorreo === o.id ? 'Enviando...' : 'Notificar al cliente (Email)'}
+                                        </button>
+                                      )}
                                     </div>
                                   ) : (
                                     <div className="pt-1">
@@ -637,7 +657,8 @@ function Ordenes() {
                               )}
                             </div>
 
-                            {col.key === 'listo' && (
+                            {/* SÓLO EL ADMIN TALLER PUEDE ENTREGAR Y FINALIZAR EL FLUJO */}
+                            {col.key === 'listo' && esAdminTaller && (
                               <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50">
                                 <button
                                   onClick={(e) => handleEntregarOrden(o.id, e)}
@@ -686,8 +707,8 @@ function Ordenes() {
           </>
         )}
 
-        {/* MODAL NUEVA ORDEN */}
-        {modalAbierto && (
+        {/* MODAL NUEVA ORDEN: SÓLO ADMINS */}
+        {modalAbierto && esAdminTaller && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center px-4 z-50 overflow-y-auto py-6">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg p-8 shadow-2xl transition-colors my-auto">
               <div className="flex items-center justify-between mb-6">
@@ -704,71 +725,32 @@ function Ordenes() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Nombre del cliente</label>
-                    <input
-                      name="cliente_nombre"
-                      value={form.cliente_nombre}
-                      onChange={handleChange}
-                      placeholder="Ej. Juan Pérez"
-                      required
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
-                    />
+                    <input name="cliente_nombre" value={form.cliente_nombre} onChange={handleChange} placeholder="Ej. Juan Pérez" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">RUT (Ej: 12345678-9)</label>
-                    <input
-                      name="cliente_rut"
-                      value={form.cliente_rut}
-                      onChange={handleChange}
-                      placeholder="12345678-9"
-                      required
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
-                    />
+                    <input name="cliente_rut" value={form.cliente_rut} onChange={handleChange} placeholder="12345678-9" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Correo electrónico</label>
-                  <input
-                    type="email"
-                    name="cliente_email"
-                    value={form.cliente_email}
-                    onChange={handleChange}
-                    placeholder="cliente@correo.cl"
-                    required
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
-                  />
+                  <input type="email" name="cliente_email" value={form.cliente_email} onChange={handleChange} placeholder="cliente@correo.cl" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Teléfono (Chile)</label>
                     <div className="flex items-center w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-3 focus-within:border-blue-500 transition-colors">
-                      <span className="text-slate-400 dark:text-slate-500 text-sm font-bold mr-1 shrink-0 select-none">
-                        +56 9
-                      </span>
-                      <input
-                        name="cliente_telefono"
-                        maxLength="8"
-                        value={form.cliente_telefono}
-                        onChange={handleChange}
-                        placeholder="12345678"
-                        required
-                        className="w-full bg-transparent text-slate-900 dark:text-white text-sm focus:outline-none font-medium"
-                      />
+                      <span className="text-slate-400 dark:text-slate-500 text-sm font-bold mr-1 shrink-0 select-none">+56 9</span>
+                      <input name="cliente_telefono" maxLength="8" value={form.cliente_telefono} onChange={handleChange} placeholder="12345678" required className="w-full bg-transparent text-slate-900 dark:text-white text-sm focus:outline-none font-medium" />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Región</label>
-                    <select
-                      value={form.cliente_region || ''}
-                      onChange={handleRegionChange}
-                      required
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
-                    >
+                    <select value={form.cliente_region || ''} onChange={handleRegionChange} required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors">
                       <option value="">Selecciona región...</option>
-                      {datosChile.regiones.map((r) => (
-                        <option key={r.region} value={r.region}>{r.region}</option>
-                      ))}
+                      {datosChile.regiones.map((r) => (<option key={r.region} value={r.region}>{r.region}</option>))}
                     </select>
                   </div>
                 </div>
@@ -776,42 +758,19 @@ function Ordenes() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Comuna</label>
-                    <select
-                      name="cliente_comuna"
-                      value={form.cliente_comuna || ''}
-                      onChange={handleChange}
-                      disabled={!form.cliente_region}
-                      required
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
+                    <select name="cliente_comuna" value={form.cliente_comuna || ''} onChange={handleChange} disabled={!form.cliente_region} required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                       <option value="">Selecciona comuna...</option>
-                      {comunasDisponibles.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
+                      {comunasDisponibles.map((c) => (<option key={c} value={c}>{c}</option>))}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5">Calle</label>
-                      <input
-                        name="cliente_calle"
-                        value={form.cliente_calle}
-                        onChange={handleChange}
-                        placeholder="Av. Libertador"
-                        required
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
-                      />
+                      <input name="cliente_calle" value={form.cliente_calle} onChange={handleChange} placeholder="Av. Libertador" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" />
                     </div>
                     <div>
                       <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5">Número</label>
-                      <input
-                        name="cliente_numero"
-                        value={form.cliente_numero}
-                        onChange={handleChange}
-                        placeholder="1234"
-                        required
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
-                      />
+                      <input name="cliente_numero" value={form.cliente_numero} onChange={handleChange} placeholder="1234" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" />
                     </div>
                   </div>
                 </div>
@@ -819,38 +778,17 @@ function Ordenes() {
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Modelo del vehículo</label>
-                    <input
-                      name="equipo"
-                      value={form.equipo}
-                      onChange={handleChange}
-                      placeholder="Ej. Toyota Corolla"
-                      required
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors"
-                    />
+                    <input name="equipo" value={form.equipo} onChange={handleChange} placeholder="Ej. Toyota Corolla" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Patente (Chile)</label>
-                    <input
-                      name="vehiculo_patente"
-                      value={form.vehiculo_patente}
-                      onChange={handleChange}
-                      placeholder="Ej. ABCD12 o AB1234"
-                      required
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium uppercase transition-colors"
-                    />
+                    <input name="vehiculo_patente" value={form.vehiculo_patente} onChange={handleChange} placeholder="Ej. ABCD12 o AB1234" required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium uppercase transition-colors" />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Descripción del problema</label>
-                  <textarea
-                    name="descripcion_problema"
-                    value={form.descripcion_problema}
-                    onChange={handleChange}
-                    rows={2}
-                    placeholder="Detalle de la falla..."
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium resize-none transition-colors"
-                  />
+                  <textarea name="descripcion_problema" value={form.descripcion_problema} onChange={handleChange} rows={2} placeholder="Detalle de la falla..." className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium resize-none transition-colors" />
                 </div>
 
                 {tecnicosBloqueados ? (
@@ -860,33 +798,21 @@ function Ordenes() {
                 ) : (
                   <div>
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Técnico asignado (opcional)</label>
-                    <select
-                      name="tecnico"
-                      value={form.tecnico}
-                      onChange={handleChange}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium appearance-none transition-colors"
-                    >
+                    <select name="tecnico" value={form.tecnico} onChange={handleChange} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium appearance-none transition-colors">
                       <option value="">Sin asignar</option>
-                      {tecnicos.map((t) => (
-                        <option key={t.id} value={t.id}>{t.nombre}</option>
-                      ))}
+                      {tecnicos.map((t) => (<option key={t.id} value={t.id}>{t.nombre}</option>))}
                     </select>
                   </div>
                 )}
 
                 {errorForm && (
                   <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl px-4 py-3 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    {errorForm}
+                    <AlertCircle className="w-4 h-4 shrink-0" /> {errorForm}
                   </div>
                 )}
 
                 <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={guardando}
-                    className="w-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 text-white font-bold py-3.5 rounded-xl disabled:opacity-60 text-sm cursor-pointer"
-                  >
+                  <button type="submit" disabled={guardando} className="w-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 text-white font-bold py-3.5 rounded-xl disabled:opacity-60 text-sm cursor-pointer">
                     {guardando ? 'Guardando...' : 'Crear orden'}
                   </button>
                 </div>
@@ -895,8 +821,8 @@ function Ordenes() {
           </div>
         )}
 
-        {/* MODAL CONFIRMAR ELIMINACIÓN */}
-        {ordenAEliminar && (
+        {/* MODAL CONFIRMAR ELIMINACIÓN: SÓLO ADMINS */}
+        {ordenAEliminar && esAdminTaller && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center px-4 z-50">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center transition-colors">
               <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-500/10 border-8 border-red-50 dark:border-red-500/10 flex items-center justify-center mx-auto mb-5 transition-colors">

@@ -1,7 +1,7 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { jwtDecode } from 'jwt-decode'
 import logoIcono from '../assets/logo.png'
-import { LayoutDashboard, ClipboardList, Wrench, Package, BarChart3, History, LogOut, Sun, Moon } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Wrench, Package, BarChart3, History, LogOut, Sun, Moon, ShieldAlert } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 const links = [
@@ -30,6 +30,8 @@ function Sidebar({ className = '' }) {
       // token inválido
     }
   }
+
+  const esAdminTaller = rol === 'admin_taller'
 
   const handleLogout = () => {
     localStorage.removeItem('access_token')
@@ -70,6 +72,27 @@ function Sidebar({ className = '' }) {
             )}
           </NavLink>
         ))}
+
+        {/* ENLACE CONDICIONAL: SÓLO PARA EL ADMIN DEL TALLER */}
+        {esAdminTaller && (
+          <NavLink
+            to="/ordenes-sin-asignar"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ${
+                isActive
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/25 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-300'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <ShieldAlert className={`w-5 h-5 ${isActive ? 'text-white' : 'text-amber-500'}`} strokeWidth={isActive ? 2.5 : 2} />
+                <span>Sin asignar</span>
+              </>
+            )}
+          </NavLink>
+        )}
       </nav>
 
       {/* SECCIÓN INFERIOR */}

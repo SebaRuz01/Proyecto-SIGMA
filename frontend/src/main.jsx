@@ -20,6 +20,7 @@ import NuevoTaller from './pages/NuevoTaller.jsx'
 import EditarTaller from './pages/EditarTaller.jsx'
 import Seguimiento from './pages/Seguimiento.jsx'
 import ResetPassword from './pages/ResetPassword.jsx'
+import OrdenesSinAsignar from './pages/OrdenesSinAsignar'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -105,7 +106,8 @@ createRoot(document.getElementById('root')).render(
               </RutaProtegida>
             }
           />
-
+          
+          <Route path="/ordenes-sin-asignar" element={<OrdenesSinAsignar />} />
           <Route path="/seguimiento/:codigo" element={<Seguimiento />} />
         </Routes>
       </BrowserRouter>
