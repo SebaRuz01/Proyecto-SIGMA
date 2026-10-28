@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import logoIcono from '../assets/logo.png'
-import { LogOut, Plus, Search, Sun, Moon, ChevronLeft, ChevronRight, ShieldAlert, Building2, CheckCircle2, Layers, SlidersHorizontal } from 'lucide-react'
+import { LogOut, Plus, Search, Sun, Moon, ChevronLeft, ChevronRight, ShieldAlert, Building2, CheckCircle2, Layers, SlidersHorizontal, Award } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
 function SuperAdmin() {
@@ -143,7 +143,7 @@ function SuperAdmin() {
         </Link>
         
         <div className="text-[10px] uppercase tracking-widest text-red-500 font-extrabold mb-10 pl-2">
-          Super Admin Panel
+          Panel de Super Administrador
         </div>
 
         <nav className="space-y-1.5 text-sm font-medium flex-1">
@@ -272,7 +272,7 @@ function SuperAdmin() {
                             : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
                         }`}
                       >
-                        {est}
+                        {est.charAt(0).toUpperCase() + est.slice(1)}
                       </button>
                     ))}
                   </div>
@@ -283,8 +283,8 @@ function SuperAdmin() {
                     <thead>
                       <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-slate-400 dark:text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100 dark:border-slate-800/60">
                         <th className="px-6 py-4 font-bold">Taller</th>
+                        <th className="px-4 py-4 font-bold">Plan</th>
                         <th className="px-4 py-4 font-bold">Rubro</th>
-                        <th className="px-4 py-4 font-bold">Módulos activos</th>
                         <th className="px-4 py-4 font-bold text-right">Estado / Acciones</th>
                       </tr>
                     </thead>
@@ -301,7 +301,6 @@ function SuperAdmin() {
                         </tr>
                       )}
                       {talleresVisibles.map((t) => {
-                        const activos = modulosDelTaller(t.id).filter((c) => c.activo)
                         const seleccionado = tallerSeleccionado === t.id
                         return (
                           <tr
@@ -314,15 +313,24 @@ function SuperAdmin() {
                             }`}
                           >
                             <td className="px-6 py-4 font-bold text-slate-800 dark:text-white">{t.nombre_comercial}</td>
-                            <td className="px-4 py-4 text-slate-600 dark:text-slate-400 capitalize font-medium">{t.rubro}</td>
-                            <td className="px-4 py-4 text-slate-500 dark:text-slate-400 text-xs font-medium">
-                              {activos.length === 0
-                                ? <span className="text-slate-400 italic">Ninguno</span>
-                                : activos.map((a) => a.modulo_nombre).join(' · ')}
+                            
+                            {/* COLUMNA PLAN */}
+                            <td className="px-4 py-4">
+                              <span className={`inline-flex items-center gap-1 text-xs font-extrabold px-2.5 py-1 rounded-lg ${
+                                t.plan_id === 2 
+                                  ? 'bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-500/20' 
+                                  : 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20'
+                              }`}>
+                                <Award className="w-3.5 h-3.5" />
+                                {t.plan_id === 2 ? 'Plan Empresas' : 'Plan Profesional'}
+                              </span>
                             </td>
+
+                            <td className="px-4 py-4 text-slate-600 dark:text-slate-400 capitalize font-medium">{t.rubro}</td>
+                            
                             <td className="px-4 py-4 text-right">
                               <div className="flex items-center justify-end gap-2.5">
-                                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+                                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border uppercase ${
                                   t.estado === 'activo' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' :
                                   t.estado === 'prueba' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20' :
                                   'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20'
@@ -375,7 +383,6 @@ function SuperAdmin() {
                         <option value={16}>16</option>
                         <option value={32}>32</option>
                       </select>
-                      <span>({indicePrimero + 1} - {Math.min(indiceUltimo, talleresFiltrados.length)} de {talleresFiltrados.length})</span>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -385,7 +392,6 @@ function SuperAdmin() {
                           onClick={() => setPagina((p) => Math.max(1, p - 1))}
                           disabled={pagina === 1}
                           className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-                          title="Anterior"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -393,7 +399,6 @@ function SuperAdmin() {
                           onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
                           disabled={pagina === totalPaginas}
                           className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-                          title="Siguiente"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </button>
@@ -439,7 +444,7 @@ function SuperAdmin() {
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{m.descripcion}</div>
                           </div>
-                          {/* SWITCH DE MÓDULOS */}
+                          
                           <button
                             onClick={() => toggleModulo(m)}
                             disabled={guardandoModulo === m.id}

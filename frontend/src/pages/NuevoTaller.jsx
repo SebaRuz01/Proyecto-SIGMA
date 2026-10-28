@@ -20,6 +20,7 @@ function NuevoTaller() {
     comuna_nombre: '',
     comuna_region: '',
     estado: 'prueba',
+    plan_id: 1, // <-- 1 por defecto (Plan Profesional)
     admin_username: '',
     admin_password: '',
     admin_nombre: '',
@@ -27,7 +28,9 @@ function NuevoTaller() {
   })
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    // Si viene del select de plan, asegurarnos de guardarlo como número entero
+    const value = e.target.name === 'plan_id' ? Number(e.target.value) : e.target.value
+    setForm({ ...form, [e.target.name]: value })
   }
 
   // MANEJADOR DE REGIÓN INSTANTÁNEO
@@ -120,6 +123,22 @@ function NuevoTaller() {
                   </select>
                 </div>
               </div>
+
+              {/* SELECCIÓN DE PLAN */}
+              <div>
+                <label className="text-xs text-muted block mb-1.5">Plan Contratado</label>
+                <select
+                  name="plan_id"
+                  value={form.plan_id}
+                  onChange={handleChange}
+                  className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand"
+                >
+                  <option value={1}>Plan Profesional (Gestión y Stock)</option>
+                  <option value={2}>Plan Empresas (Incluye IA y Avanzados)</option>
+                </select>
+              </div>
+              {/* FIN SELECCIÓN DE PLAN */}
+
               <div>
                 <label className="text-xs text-muted block mb-1.5">Rubro</label>
                 <input

@@ -12,6 +12,7 @@ function OrdenesSinAsignar() {
   const [error, setError] = useState('')
   const [asignaciones, setAsignaciones] = useState({}) // { ordenId: tecnicoId }
   const [guardandoId, setGuardandoId] = useState(null)
+  const [planTaller, setPlanTaller] = useState(1)
   
   const navigate = useNavigate()
 
@@ -29,17 +30,38 @@ function OrdenesSinAsignar() {
 
   useEffect(() => {
     if (!esAdminTaller) {
-      navigate('/ordenes') // Si no es admin, lo redirigimos
+      navigate('/ordenes')
       return
     }
 
-    // Cargar órdenes y técnicos
-    Promise.all([
+    const tokenLocal = localStorage.getItem('access_token')
+    let tallerIdLocal = null
+    if (tokenLocal) {
+      try {
+        tallerIdLocal = jwtDecode(tokenLocal).taller_id
+      } catch (e) {
+        // Error silencioso
+      }
+    }
+
+    const peticiones = [
       api.get('/ordenes/'),
       api.get('/tecnicos/')
-    ])
-      .then(([resOrdenes, resTecnicos]) => {
-        // Filtrar solo las que NO tienen técnico asignado y no están entregadas
+    ]
+
+    if (tallerIdLocal) {
+      peticiones.push(api.get(`/talleres/${tallerIdLocal}/`))
+    }
+
+    Promise.all(peticiones)
+      .then((res) => {
+        const resOrdenes = res[0]
+        const resTecnicos = res[1]
+        
+        if (res[2]) {
+          setPlanTaller(res[2].data.plan_id || 1)
+        }
+
         const sinAsignar = resOrdenes.data.filter(
           (o) => !o.tecnico && o.estado?.toLowerCase() !== 'entregado'
         )
@@ -64,15 +86,23 @@ function OrdenesSinAsignar() {
     setGuardandoId(ordenId)
     try {
       await api.patch(`/ordenes/${ordenId}/`, { tecnico: tecnicoId })
-      // Remover de la lista local de sin asignar
       setOrdenes((prev) => prev.filter((o) => o.id !== ordenId))
       alert('¡Técnico asignado exitosamente!')
-    } catch {
-      alert('No se pudo asignar el técnico.')
+    } catch (err) {
+      const mensajeError = err.response?.data?.non_field_errors?.[0] || err.response?.data?.detail || 'No se pudo asignar el técnico.'
+      alert(mensajeError)
     } finally {
       setGuardandoId(null)
     }
   }
+
+  // Si el plan es Profesional (1), solo permitimos elegir entre los primeros 5 técnicos más antiguos.
+  const tecnicosDisponibles = tecnicos.filter((t, index) => {
+    if (planTaller === 1) {
+      return index < 5
+    }
+    return true
+  })
 
   if (!esAdminTaller) return null
 
@@ -132,15 +162,17 @@ function OrdenesSinAsignar() {
 
               <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Seleccionar técnico:</label>
+                  <label className="text-[11px] font-bold text-slate-500 block mb-1">
+                    Seleccionar técnico {planTaller === 1 && '(Máx. 5 habilitados)'}:
+                  </label>
                   <select
                     value={asignaciones[o.id] || ''}
                     onChange={(e) => handleSelectChange(o.id, e.target.value)}
                     className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:border-blue-500"
                   >
                     <option value="">Seleccione un técnico...</option>
-                    {tecnicos.map((t) => (
-                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                    {tecnicosDisponibles.map((t) => (
+                      <option key={t.id} value={t.id}>{t.nombre} {t.apellido || ''}</option>
                     ))}
                   </select>
                 </div>

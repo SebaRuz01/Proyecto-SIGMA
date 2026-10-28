@@ -58,6 +58,7 @@ function Ordenes() {
   const [calculandoIA, setCalculandoIA] = useState(null)
   const [enviandoCorreo, setEnviandoCorreo] = useState(null)
   const [comunasDisponibles, setComunasDisponibles] = useState([])
+  const [planTaller, setPlanTaller] = useState(1)
   
   const [modelosDisponibles, setModelosDisponibles] = useState([])
   
@@ -66,9 +67,12 @@ function Ordenes() {
 
   const token = localStorage.getItem('access_token')
   let rolUsuario = ''
+  let tallerIdToken = null
   if (token) {
     try {
-      rolUsuario = jwtDecode(token).rol
+      const decoded = jwtDecode(token)
+      rolUsuario = decoded.rol
+      tallerIdToken = decoded.taller_id
     } catch {
       rolUsuario = ''
     }
@@ -136,10 +140,26 @@ function Ordenes() {
   }
 
   const cargarDatos = () => {
-    api.get('/ordenes/')
+    const peticiones = [
+      api.get('/ordenes/'),
+      api.get('/repuestos/'),
+      api.get('/tecnicos/')
+    ]
+
+    if (tallerIdToken) {
+      peticiones.push(api.get(`/talleres/${tallerIdToken}/`))
+    }
+
+    Promise.all(peticiones)
       .then((res) => {
-        const activas = res.data.filter(o => o.estado?.toLowerCase() !== 'entregado')
+        const activas = res[0].data.filter(o => o.estado?.toLowerCase() !== 'entregado')
         setOrdenes(activas)
+        setRepuestos(res[1].data)
+        setTecnicos(res[2].data)
+
+        if (res[3]) {
+          setPlanTaller(res[3].data.plan_id || 1)
+        }
       })
       .catch((err) => {
         if (err.response?.status === 403) {
@@ -149,21 +169,10 @@ function Ordenes() {
         }
       })
       .finally(() => setCargando(false))
-
-    api.get('/repuestos/')
-      .then((res) => setRepuestos(res.data))
-      .catch((err) => {
-        if (err.response?.status === 403) setRepuestosBloqueados(true)
-      })
   }
 
   useEffect(() => {
     cargarDatos()
-    api.get('/tecnicos/')
-      .then((res) => setTecnicos(res.data))
-      .catch((err) => {
-        if (err.response?.status === 403) setTecnicosBloqueados(true)
-      })
   }, [])
 
   const calcularEstimacionIA = async (ordenId, e) => {
@@ -172,8 +181,12 @@ function Ordenes() {
     try {
       const res = await api.post(`/ordenes/${ordenId}/estimar-ia/`)
       setOrdenes(prev => prev.map(o => o.id === ordenId ? { ...o, fecha_estimada: res.data.fecha_estimada } : o))
-    } catch {
-      alert('No se pudo calcular la estimación con IA. Asegúrate de tener suficientes datos históricos.')
+    } catch (err) {
+      if (err.response?.status === 403) {
+        alert('La estimación de fechas con Inteligencia Artificial es exclusiva del Plan Empresas. Actualiza tu plan para desbloquear esta función.')
+      } else {
+        alert('No se pudo calcular la estimación con IA. Asegúrate de tener suficientes datos históricos.')
+      }
     } finally {
       setCalculandoIA(null)
     }
@@ -189,8 +202,12 @@ function Ordenes() {
     try {
       await api.post(`/ordenes/${orden.id}/enviar-correo/`)
       alert(`¡Correo enviado con éxito a ${orden.cliente_email || 'correo del cliente'} con la fecha estimada de entrega!`)
-    } catch {
-      alert('Error al enviar el correo desde el servidor.')
+    } catch (err) {
+      if (err.response?.status === 403) {
+        alert('Esta función avanzada de notificaciones por IA requiere el Plan Empresas.')
+      } else {
+        alert('Error al enviar el correo desde el servidor.')
+      }
     } finally {
       setEnviandoCorreo(null)
     }
@@ -318,7 +335,7 @@ function Ordenes() {
       setModelosDisponibles([])
       cargarDatos()
     } catch (err) {
-      const errorMsg = JSON.stringify(err.response?.data) || 'Revisa los datos.'
+      const errorMsg = err.response?.data?.non_field_errors?.[0] || err.response?.data?.detail || JSON.stringify(err.response?.data) || 'Revisa los datos.'
       setErrorForm(`Error al crear: ${errorMsg}`)
     } finally {
       setGuardando(false)
@@ -370,7 +387,6 @@ function Ordenes() {
     return nombre.includes(texto) || modelo.includes(texto) || compatibilidades.includes(texto)
   })
 
-  // FILTRO: Oculta órdenes sin técnico asignado del Kanban principal
   const ordenesFiltradas = ordenes.filter((o) => {
     if (!o.tecnico) return false
 
@@ -401,6 +417,14 @@ function Ordenes() {
       return null
     }
   }
+
+  // Filtrado de técnicos disponibles para el selector según el plan
+  const tecnicosDisponiblesSelect = tecnicos.filter((t, index) => {
+    if (planTaller === 1) {
+      return index < 5
+    }
+    return true
+  })
 
   return (
     <div className="bg-[#f4f7fb] dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 min-h-screen flex font-sans selection:bg-blue-100 dark:selection:bg-blue-900 selection:text-blue-900 dark:selection:text-blue-100 relative overflow-hidden transition-colors duration-300">
@@ -534,7 +558,6 @@ function Ordenes() {
                             </div>
                             
                             <div className="mb-1.5">
-                              {/* Título de la tarjeta mostrando el modelo y el año del vehículo */}
                               <h3 className="font-bold text-slate-800 dark:text-white text-sm leading-tight transition-colors">
                                 {o.equipo} {o.vehiculo_anio ? `(${o.vehiculo_anio})` : ''}
                               </h3>
@@ -722,7 +745,6 @@ function Ordenes() {
           </>
         )}
 
-        {/* MODAL NUEVA ORDEN: SÓLO ADMINS */}
         {modalAbierto && esAdminTaller && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center px-4 z-50 overflow-y-auto py-6">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg p-8 shadow-2xl transition-colors my-auto">
@@ -846,10 +868,12 @@ function Ordenes() {
                   </div>
                 ) : (
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">Técnico asignado (opcional)</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1.5 transition-colors">
+                      Técnico asignado (opcional) {planTaller === 1 && '— (Máx. 5 habilitados)'}
+                    </label>
                     <select name="tecnico" value={form.tecnico} onChange={handleChange} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 font-medium appearance-none transition-colors">
                       <option value="">Sin asignar</option>
-                      {tecnicos.map((t) => (<option key={t.id} value={t.id}>{t.nombre}</option>))}
+                      {tecnicosDisponiblesSelect.map((t) => (<option key={t.id} value={t.id}>{t.nombre} {t.apellido || ''}</option>))}
                     </select>
                   </div>
                 )}

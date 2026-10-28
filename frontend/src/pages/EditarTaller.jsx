@@ -32,7 +32,9 @@ function EditarTaller() {
   }, [id])
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    // Nos aseguramos de convertir el plan_id a número entero si es el campo correspondiente
+    const value = e.target.name === 'plan_id' ? Number(e.target.value) : e.target.value
+    setForm({ ...form, [e.target.name]: value })
   }
 
   // MANEJADOR DE REGIÓN INSTANTÁNEO
@@ -65,6 +67,7 @@ function EditarTaller() {
         comuna_nombre: form.comuna_nombre,
         comuna_region: form.comuna_region,
         estado: form.estado,
+        plan_id: form.plan_id, // <-- SE AÑADE EL PLAN ACTUALIZADO
       })
       navigate('/super-admin')
     } catch (err) {
@@ -132,6 +135,21 @@ function EditarTaller() {
               </select>
             </div>
           </div>
+
+          {/* SELECCIÓN DE PLAN */}
+          <div>
+            <label className="text-xs text-muted block mb-1.5">Plan Contratado</label>
+            <select
+              name="plan_id"
+              value={form.plan_id || 1}
+              onChange={handleChange}
+              className="w-full bg-base-900 border border-base-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand font-bold text-blue-400"
+            >
+              <option value={1}>Plan Profesional (Gestión y Stock)</option>
+              <option value={2}>Plan Empresas (Incluye IA y Avanzados)</option>
+            </select>
+          </div>
+          {/* FIN SELECCIÓN DE PLAN */}
           
           <div>
             <label className="text-xs text-muted block mb-1.5">Rubro</label>
@@ -207,7 +225,7 @@ function EditarTaller() {
           <button
             type="submit"
             disabled={guardando}
-            className="w-full bg-brand hover:bg-brand-dark transition-colors text-white font-semibold py-3 rounded-lg disabled:opacity-60 mt-4"
+            className="w-full bg-brand hover:bg-brand-dark transition-colors text-white font-semibold py-3 rounded-lg disabled:opacity-60 mt-4 cursor-pointer"
           >
             {guardando ? 'Guardando...' : 'Guardar cambios'}
           </button>
