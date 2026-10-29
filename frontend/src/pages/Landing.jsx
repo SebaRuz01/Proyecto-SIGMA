@@ -186,7 +186,6 @@ function Landing() {
     }
 
     try {
-      // Conexión limpia con la instancia de Axios a Render
       await api.post('/contacto/', payload)
       setEnviandoForm(false)
       setEnviadoExito(true)
