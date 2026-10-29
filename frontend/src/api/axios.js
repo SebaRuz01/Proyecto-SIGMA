@@ -7,9 +7,14 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  // Si la petición es para el formulario de contacto público, NO enviamos token de autorización
+  const esRutaPublica = config.url && config.url.includes('contacto')
+
+  if (!esRutaPublica) {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
   }
 
   // Asegura que cualquier petición local sea redirigida automáticamente al servidor online

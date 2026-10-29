@@ -32,13 +32,13 @@ function HistorialVehiculos() {
     const cliente = o.cliente_nombre?.toLowerCase() || ''
     const codigo = `ot-${o.id}`.toLowerCase()
     return patente.includes(texto) || modelo.includes(texto) || cliente.includes(texto) || codigo.includes(texto)
-  })
+  }).sort((a, b) => b.id - a.id) // <-- ORDENAMIENTO: De la más reciente a la más antigua
 
   const exportarCSV = () => {
     if (ordenesEntregadas.length === 0) return
     
     const headers = ['Codigo OT', 'Vehiculo/Modelo', 'Patente', 'Cliente', 'Tecnico', 'Falla', 'Fecha Ingreso', 'Fecha Entrega', 'Estado']
-    const rows = ordenesEntregadas.map(o => [
+    const rows = filtradas.map(o => [
       `OT-${o.id.toString().padStart(3, '0')}`,
       `"${o.equipo || 'N/D'}"`,
       o.vehiculo_patente || 'N/D',

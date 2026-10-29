@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import api from '../api/axios'
 import { Lock, X, Search, Plus, AlertCircle, PackagePlus, Trash2, Layers, AlertTriangle, DollarSign, ChevronLeft, ChevronRight, Download, Filter } from 'lucide-react'
+import { jwtDecode } from 'jwt-decode'
 
 const formatearPrecio = (valor) => {
   return new Intl.NumberFormat('es-CL', {
@@ -27,6 +28,8 @@ function Inventario() {
   const [errorStock, setErrorStock] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('todos') // 'todos' | 'optimo' | 'alerta'
+  const [esAdmin, setEsAdmin] = useState(true)
+  const [planTaller, setPlanTaller] = useState(1) // 1 = Profesional, 2 = Empresas
 
   // PAGINACIÓN AVANZADA
   const [paginaActual, setPaginaActual] = useState(1)
@@ -42,7 +45,27 @@ function Inventario() {
     compatibilidades: '',
   })
 
-  const cargarRepuestos = () => {
+  const cargarRepuestos = async () => {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      try {
+        const decoded = jwtDecode(token)
+        // Verificamos correctamente incluyendo 'admin_taller'
+        if (decoded.is_staff || decoded.is_superuser || decoded.rol === 'admin' || decoded.rol === 'admin_taller' || decoded.is_admin) {
+          setEsAdmin(true)
+        } else {
+          setEsAdmin(false)
+        }
+
+        if (decoded.taller_id) {
+          const resTaller = await api.get(`/talleres/${decoded.taller_id}/`)
+          setPlanTaller(resTaller.data.plan_id || 1)
+        }
+      } catch (e) {
+        console.error('Error al decodificar token', e)
+      }
+    }
+
     api.get('/repuestos/')
       .then((res) => setRepuestos(res.data))
       .catch((err) => {
@@ -65,6 +88,7 @@ function Inventario() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!esAdmin) return
     setErrorForm('')
 
     const nombreTrim = form.nombre.trim().toLowerCase()
@@ -109,7 +133,7 @@ function Inventario() {
 
   const handleSumarStock = async (e) => {
     e.preventDefault()
-    if (!repuestoSeleccionado) return
+    if (!esAdmin || !repuestoSeleccionado) return
     setErrorStock('')
 
     const cantidad = Number(cantidadAgregada)
@@ -137,7 +161,7 @@ function Inventario() {
   }
 
   const confirmarEliminarRepuesto = async () => {
-    if (!repuestoAEliminar) return
+    if (!esAdmin || !repuestoAEliminar) return
     setEliminando(true)
     try {
       await api.delete(`/repuestos/${repuestoAEliminar.id}/`)
@@ -150,7 +174,6 @@ function Inventario() {
     }
   }
 
-  // Filtrado avanzado (Búsqueda + Pestañas de Estado)
   const repuestosFiltrados = repuestos.filter((r) => {
     const texto = busqueda.toLowerCase()
     const nombre = r.nombre?.toLowerCase() || ''
@@ -165,7 +188,6 @@ function Inventario() {
     return coincideTexto
   })
 
-  // Lógica de Paginación
   const totalPaginas = Math.ceil(repuestosFiltrados.length / Number(articulosPorPagina)) || 1
   const indiceUltimoArticulo = paginaActual * Number(articulosPorPagina)
   const indicePrimerArticulo = indiceUltimoArticulo - Number(articulosPorPagina)
@@ -181,30 +203,34 @@ function Inventario() {
     setPaginaActual(1)
   }
 
-  // Exportar a CSV
   const exportarCSV = () => {
+    if (planTaller === 1) {
+      alert('La exportación de datos está disponible únicamente para el Plan Empresas.')
+      return
+    }
+
     const headers = ['Nombre', 'Modelo', 'Anio', 'Compatibilidades', 'Stock Actual', 'Stock Minimo', 'Precio']
     const filas = repuestosFiltrados.map(r => [
-      `"${r.nombre || ''}"`,
-      `"${r.modelo || ''}"`,
+      `"${(r.nombre || '').replace(/"/g, '""')}"`,
+      `"${(r.modelo || '').replace(/"/g, '""')}"`,
       r.anio || '',
-      `"${r.compatibilidades || ''}"`,
+      `"${(r.compatibilidades || '').replace(/"/g, '""')}"`,
       r.stock_actual,
       r.stock_minimo,
       r.precio
     ])
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...filas.map(e => e.join(','))].join('\n')
-    const encodedUri = encodeURI(csvContent)
+    const csvContent = "\uFEFF" + [headers.join(','), ...filas.map(e => e.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.setAttribute('href', encodedUri)
+    link.setAttribute('href', url)
     link.setAttribute('download', 'inventario_sigma.csv')
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
 
-  // KPIs
   const totalRepuestos = repuestos.length
   const alertasStock = repuestos.filter(r => r.stock_actual <= r.stock_minimo).length
   const valorTotalInventario = repuestos.reduce((acc, r) => acc + (Number(r.precio) * Number(r.stock_actual)), 0)
@@ -226,19 +252,21 @@ function Inventario() {
             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium transition-colors">Control corporativo de inventario, existencias y compatibilidades de taller.</p>
           </div>
           <div className="flex items-center gap-3">
-            {!bloqueado && repuestos.length > 0 && (
+            {!bloqueado && repuestos.length > 0 && planTaller > 1 && (
               <button
                 onClick={exportarCSV}
-                className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-all text-sm font-bold px-4 py-3 rounded-2xl flex items-center justify-center gap-2 shadow-sm"
+                className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-all text-sm font-bold px-4 py-3 rounded-2xl flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
                 <Download className="w-4 h-4 text-slate-400" />
-                Exportar CSV
+                Exportar CSV (Plan Empresas)
               </button>
             )}
-            {!bloqueado && (
+
+            {/* BOTÓN NUEVO REPUESTO: Visible para Administradores de Taller y Superadmins */}
+            {!bloqueado && esAdmin && (
               <button
                 onClick={() => setModalAbierto(true)}
-                className="bg-blue-600 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/25 text-white text-sm font-bold px-6 py-3 rounded-2xl flex items-center justify-center gap-2 transform active:scale-95"
+                className="bg-blue-600 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/25 text-white text-sm font-bold px-6 py-3 rounded-2xl flex items-center justify-center gap-2 transform active:scale-95 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 Nuevo repuesto
@@ -322,23 +350,22 @@ function Inventario() {
                 />
               </div>
 
-              {/* PESTAÑAS DE FILTRO RÁPIDO */}
               <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
                 <button
                   onClick={() => handleFiltroEstadoChange('todos')}
-                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${filtroEstado === 'todos' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${filtroEstado === 'todos' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}
                 >
                   Todos ({repuestos.length})
                 </button>
                 <button
                   onClick={() => handleFiltroEstadoChange('optimo')}
-                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${filtroEstado === 'optimo' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${filtroEstado === 'optimo' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}
                 >
                   Óptimos
                 </button>
                 <button
                   onClick={() => handleFiltroEstadoChange('alerta')}
-                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${filtroEstado === 'alerta' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${filtroEstado === 'alerta' ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`}
                 >
                   Bajo Stock ({alertasStock})
                 </button>
@@ -394,25 +421,32 @@ function Inventario() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => {
-                                setRepuestoSeleccionado(r)
-                                setCantidadAgregada(1)
-                                setErrorStock('')
-                                setModalStockAbierto(true)
-                              }}
-                              className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors inline-flex items-center gap-1.5"
-                              title="Añadir stock"
-                            >
-                              <PackagePlus className="w-3.5 h-3.5" /> Stock
-                            </button>
-                            <button
-                              onClick={() => setRepuestoAEliminar(r)}
-                              className="bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold p-2 rounded-xl transition-colors"
-                              title="Eliminar repuesto"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {/* BOTÓN AÑADIR STOCK: Visible para Administradores */}
+                            {esAdmin && (
+                              <button
+                                onClick={() => {
+                                  setRepuestoSeleccionado(r)
+                                  setCantidadAgregada(1)
+                                  setErrorStock('')
+                                  setModalStockAbierto(true)
+                                }}
+                                className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                                title="Añadir stock"
+                              >
+                                <PackagePlus className="w-3.5 h-3.5" /> Stock
+                              </button>
+                            )}
+
+                            {/* BOTÓN ELIMINAR: Visible para Administradores */}
+                            {esAdmin && (
+                              <button
+                                onClick={() => setRepuestoAEliminar(r)}
+                                className="bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-bold p-2 rounded-xl transition-colors cursor-pointer"
+                                title="Eliminar repuesto"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       )
@@ -421,11 +455,10 @@ function Inventario() {
                 </table>
               </div>
 
-              {/* BARRA DE PAGINACIÓN PROFESIONAL */}
+              {/* BARRA DE PAGINACIÓN */}
               {repuestosFiltrados.length > 0 && (
                 <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-4 bg-slate-50/50 dark:bg-slate-800/10">
                   
-                  {/* Selector de filas por página */}
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Mostrar:</span>
                     <select
@@ -442,11 +475,10 @@ function Inventario() {
                       <option value={100}>100</option>
                     </select>
                     <span className="text-xs font-medium text-slate-400">
-                      ({indicePrimerArticulo + 1} - {Math.min(indiceUltimoArticulo, repuestosFiltrados.length)} de {repuestosFiltrados.length})
+                      ({indicePrimerArticulo + 1}-{Math.min(indiceUltimoArticulo, repuestosFiltrados.length)} de {repuestosFiltrados.length})
                     </span>
                   </div>
 
-                  {/* Controles numéricos y flechas */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-2">
                       Página {paginaActual} de {totalPaginas}
@@ -454,7 +486,7 @@ function Inventario() {
                     <button
                       onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
                       disabled={paginaActual === 1}
-                      className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
                       title="Anterior"
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -462,7 +494,7 @@ function Inventario() {
                     <button
                       onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
                       disabled={paginaActual === totalPaginas}
-                      className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                      className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
                       title="Siguiente"
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -474,13 +506,13 @@ function Inventario() {
           </>
         )}
 
-        {/* MODAL NUEVO REPUESTO */}
-        {modalAbierto && (
+        {/* MODAL NUEVO REPUESTO: Visible para Administradores */}
+        {modalAbierto && esAdmin && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-center px-4 z-50 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] w-full max-w-lg p-8 shadow-2xl transition-colors">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-extrabold text-xl text-slate-800 dark:text-white tracking-tight">Nuevo repuesto</h2>
-                <button onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-full transition-colors">
+                <button onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-full transition-colors cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -581,7 +613,7 @@ function Inventario() {
                   <button
                     type="submit"
                     disabled={guardando}
-                    className="w-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-white font-bold py-3.5 rounded-xl disabled:opacity-60 text-sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-white font-bold py-3.5 rounded-xl disabled:opacity-60 text-sm cursor-pointer"
                   >
                     {guardando ? 'Guardando...' : 'Crear repuesto'}
                   </button>
@@ -591,13 +623,13 @@ function Inventario() {
           </div>
         )}
 
-        {/* MODAL AÑADIR STOCK */}
-        {modalStockAbierto && repuestoSeleccionado && (
+        {/* MODAL AÑADIR STOCK: Visible para Administradores */}
+        {modalStockAbierto && repuestoSeleccionado && esAdmin && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-center px-4 z-50 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] w-full max-w-sm p-8 shadow-2xl transition-colors">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-extrabold text-lg text-slate-800 dark:text-white">Añadir stock</h2>
-                <button onClick={() => setModalStockAbierto(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-full">
+                <button onClick={() => setModalStockAbierto(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-full cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -630,7 +662,7 @@ function Inventario() {
                   <button
                     type="submit"
                     disabled={guardando}
-                    className="w-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-white font-bold py-3 rounded-xl disabled:opacity-60 text-sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-white font-bold py-3 rounded-xl disabled:opacity-60 text-sm cursor-pointer"
                   >
                     {guardando ? 'Actualizando...' : 'Confirmar ingreso'}
                   </button>
@@ -640,8 +672,8 @@ function Inventario() {
           </div>
         )}
 
-        {/* MODAL CONFIRMAR ELIMINACIÓN */}
-        {repuestoAEliminar && (
+        {/* MODAL CONFIRMAR ELIMINACIÓN: Visible para Administradores */}
+        {repuestoAEliminar && esAdmin && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-center px-4 z-50 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] w-full max-w-sm p-8 shadow-2xl text-center transition-colors">
               <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-500/10 border-8 border-red-50 dark:border-red-500/10 flex items-center justify-center mx-auto mb-5 transition-colors">
@@ -658,14 +690,14 @@ function Inventario() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setRepuestoAEliminar(null)}
-                  className="flex-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors py-3 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300"
+                  className="flex-1 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors py-3 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmarEliminarRepuesto}
                   disabled={eliminando}
-                  className="flex-1 bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 text-white py-3 rounded-xl text-sm font-bold disabled:opacity-60"
+                  className="flex-1 bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20 text-white py-3 rounded-xl text-sm font-bold disabled:opacity-60 cursor-pointer"
                 >
                   {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
                 </button>

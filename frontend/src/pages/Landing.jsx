@@ -1,4 +1,5 @@
 import logo from '../assets/logo.png'
+import api from '../api/axios'
 import { 
   Search, Sun, Moon, Wrench, ArrowRight, CheckCircle2, 
   ClipboardList, Package, UserCheck, Car, Clock, 
@@ -67,12 +68,24 @@ function Landing() {
 
   const buscarOrden = (e) => {
     e.preventDefault()
-    const limpia = numeroOrden.trim().toUpperCase().replace('OT-', '').replace(/^0+/, '')
-    if (!limpia || isNaN(Number(limpia))) {
-      setErrorBusqueda('Ingresa un código válido (Ej: OT-037 o 37).')
+    const raw = numeroOrden.trim().toUpperCase()
+    
+    if (!raw || raw.length < 1) {
+      setErrorBusqueda('Ingresa un código de seguimiento válido (Ej: 2CFF9F7A).')
       return
     }
-    navigate(`/seguimiento/${limpia}`)
+
+    let codigoFinal = raw
+    if (raw.startsWith('OT-')) {
+      codigoFinal = raw.replace('OT-', '').replace(/^0+/, '') || '0'
+    }
+
+    if (codigoFinal.length < 1) {
+      setErrorBusqueda('Ingresa un código de seguimiento válido (Ej: 2CFF9F7A).')
+      return
+    }
+
+    navigate(`/seguimiento/${codigoFinal}`)
   }
 
   const scrollToSection = (e, id) => {
@@ -163,92 +176,24 @@ function Landing() {
 
     setEnviandoForm(true)
 
-    // Estructura de correo limpia y pulida sin marcas de código
     const payload = {
-      sender: { 
-        name: "SIGMA Plataforma", 
-        email: "sebaruz2004@gmail.com" 
-      },
-      to: [
-        { 
-          email: "sebaruz2004@gmail.com", 
-          name: "Sebastián Ruz" 
-        }
-      ],
-      subject: `Nueva Solicitud de Contratación - Plan ${planSeleccionado} (${formContacto.nombreTaller})`,
-      htmlContent: `
-        <div style="background-color: #f3f6fb; padding: 30px 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif;">
-          <div style="max-width: 600px; margin: 0 auto; background: #090d16; color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
-            
-            <div style="height: 6px; width: 100%; background: linear-gradient(90deg, #2563eb, #14b8a6, #f59e0b);"></div>
-            
-            <div style="padding: 30px;">
-              <h2 style="margin: 0 0 10px 0; font-size: 22px; font-weight: 800; color: #ffffff;">Nueva Solicitud de Contratación</h2>
-              <p style="margin: 0 0 25px 0; font-size: 13px; color: #94a3b8; line-height: 1.5;">Un nuevo taller ha solicitado activar su cuenta en la plataforma SIGMA.</p>
-              
-              <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;">
-                <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 4px 8px; border-radius: 6px;">Modalidad de Plan</span>
-                <div style="font-size: 18px; font-weight: 900; color: #ffffff; margin-top: 8px;">Plan ${planSeleccionado}</div>
-              </div>
-
-              <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #14b8a6; letter-spacing: 0.05em;">Detalles del Taller</p>
-                <table style="width: 100%; font-size: 13px; color: #e2e8f0; border-collapse: collapse;">
-                  <tr>
-                    <td style="padding: 6px 0; color: #94a3b8; width: 35%;">Nombre del taller:</td>
-                    <td style="padding: 6px 0; font-weight: 700; color: #ffffff;">${formContacto.nombreTaller}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #94a3b8;">Contacto:</td>
-                    <td style="padding: 6px 0; font-weight: 700; color: #ffffff;">${formContacto.nombreContacto}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #94a3b8;">Correo electrónico:</td>
-                    <td style="padding: 6px 0;"><a href="mailto:${formContacto.email}" style="color: #38bdf8; text-decoration: none;">${formContacto.email}</a></td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #94a3b8;">Teléfono:</td>
-                    <td style="padding: 6px 0;"><a href="tel:+569${formContacto.telefono}" style="color: #38bdf8; text-decoration: none;">+56 9 ${formContacto.telefono}</a></td>
-                  </tr>
-                </table>
-              </div>
-
-              <div style="background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 16px 20px; margin-bottom: 25px;">
-                <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #94a3b8;">Requerimientos adicionales:</p>
-                <p style="margin: 0; font-size: 13px; color: #cbd5e1; line-height: 1.5; font-style: italic;">${formContacto.mensaje || 'Ninguno especificado.'}</p>
-              </div>
-
-              <div style="text-align: center; border-top: 1px solid #1e293b; padding-top: 15px;">
-                <p style="font-size: 11px; color: #64748b; margin: 0;">Sistema de Gestión SIGMA — Notificación Comercial Automática</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      `
+      nombre_taller: formContacto.nombreTaller.trim(),
+      nombre_contacto: formContacto.nombreContacto.trim(),
+      email: formContacto.email.trim(),
+      telefono: `+569${formContacto.telefono}`,
+      plan: planSeleccionado,
+      mensaje: formContacto.mensaje.trim() || 'Ninguno especificado.'
     }
 
     try {
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'api-key': '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'
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (response.ok) {
-        setEnviandoForm(false)
-        setEnviadoExito(true)
-      } else {
-        throw new Error('Error al enviar el correo mediante Brevo')
-      }
-    } catch (error) {
-      console.error('Error Brevo:', error)
+      // Conexión limpia con la instancia de Axios a Render
+      await api.post('/contacto/', payload)
       setEnviandoForm(false)
       setEnviadoExito(true)
+    } catch (error) {
+      console.error('Error al guardar solicitud en la BD:', error)
+      setErrorContacto('No se pudo registrar la solicitud en el servidor. Intenta nuevamente.')
+      setEnviandoForm(false)
     }
   }
 
@@ -404,13 +349,13 @@ function Landing() {
                   Rastrea tu vehículo
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                  Ingresa tu código o número de Orden de Trabajo entregado por el taller para consultar el progreso en tiempo real.
+                  Ingresa tu código de seguimiento entregado por el taller para consultar el progreso en tiempo real.
                 </p>
 
                 <form onSubmit={buscarOrden} className="space-y-4" noValidate>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                      Código de Orden de Trabajo
+                      Código de Seguimiento
                     </label>
                     <div className="relative">
                       <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -418,8 +363,8 @@ function Landing() {
                         type="text"
                         value={numeroOrden}
                         onChange={handleOrdenChange}
-                        maxLength={10}
-                        placeholder="Ej: OT-037 o 37"
+                        maxLength={12}
+                        placeholder="Ej: 2CFF9F7A"
                         className="w-full bg-slate-50 dark:bg-[#090d16] border border-slate-300 dark:border-slate-700 focus:border-teal-500 rounded-xl pl-10 pr-20 py-3.5 text-sm text-slate-900 dark:text-white font-mono-code font-bold focus:outline-none transition-colors placeholder:text-slate-400 placeholder:font-sans placeholder:font-normal"
                         required
                       />
@@ -577,7 +522,7 @@ function Landing() {
                   
                   <div className="flex flex-wrap justify-between items-center gap-2 mb-3 min-w-0">
                     <span className="text-[11px] font-mono-code font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shrink-0">
-                      OT-037
+                      2CFF9F7A
                     </span>
                     <span className={`text-[11px] font-bold border px-2.5 py-1 rounded-full uppercase transition-all tracking-tight shrink-0 max-w-full truncate ${etapaKanbanActual.badgeBg}`}>
                       {etapaKanbanActual.label}
@@ -667,7 +612,7 @@ function Landing() {
                   <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 gap-2 min-w-0">
                     <div className="min-w-0">
                       <span className="font-heading text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate block">
-                        Repuestos en OT-030 ({repuestosCargadosDemo.length})
+                        Repuestos en Orden ({repuestosCargadosDemo.length})
                       </span>
                       <p className="text-[11px] text-slate-500 truncate">Toyota - Yaris (2020) · Patente ABXD98</p>
                     </div>
@@ -991,7 +936,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* FORMULARIO DE CONTACTO Y CONTRATACIÓN CON BREVO API */}
+      {/* FORMULARIO DE CONTACTO Y CONTRATACIÓN GUARDADO EN BASE DE DATOS */}
       <section id="contacto" className="py-16 md:py-24 px-6 bg-slate-50 dark:bg-[#0d1320] border-t border-slate-200/80 dark:border-slate-800">
         <div className="max-w-2xl mx-auto">
           

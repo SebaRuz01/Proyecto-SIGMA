@@ -29,6 +29,7 @@ function Tecnicos() {
   const [planTaller, setPlanTaller] = useState(1)
   const [tecnicoAEliminar, setTecnicoAEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
+  const [esAdmin, setEsAdmin] = useState(true) // Control de rol
 
   const [form, setForm] = useState({
     username: '',
@@ -45,6 +46,14 @@ function Tecnicos() {
       const token = localStorage.getItem('access_token')
       if (token) {
         const decoded = jwtDecode(token)
+        
+        // Verificamos correctamente incluyendo 'admin_taller'
+        if (decoded.is_staff || decoded.is_superuser || decoded.rol === 'admin' || decoded.rol === 'admin_taller' || decoded.is_admin) {
+          setEsAdmin(true)
+        } else {
+          setEsAdmin(false)
+        }
+
         if (decoded.taller_id) {
           const resTaller = await api.get(`/talleres/${decoded.taller_id}/`)
           setPlanTaller(resTaller.data.plan_id || 1)
@@ -74,6 +83,7 @@ function Tecnicos() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!esAdmin) return
     setErrorForm('')
 
     if (form.email && !validarEmail(form.email)) {
@@ -111,7 +121,7 @@ function Tecnicos() {
   }
 
   const confirmarEliminarTecnico = async () => {
-    if (!tecnicoAEliminar) return
+    if (!esAdmin || !tecnicoAEliminar) return
     setEliminando(true)
     try {
       await api.delete(`/tecnicos/${tecnicoAEliminar.id}/`)
@@ -146,7 +156,8 @@ function Tecnicos() {
               )}
             </div>
           </div>
-          {!bloqueado && (
+          {/* BOTÓN AGREGAR TÉCNICO: Visible para Administradores de Taller y Superadmins */}
+          {!bloqueado && esAdmin && (
             <button
               onClick={() => setModalAbierto(true)}
               className="bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 text-white text-sm font-bold px-6 py-3 rounded-full flex items-center justify-center gap-2 cursor-pointer active:scale-95"
@@ -190,14 +201,15 @@ function Tecnicos() {
                 <Wrench className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-600 dark:text-slate-300 font-bold text-base">No hay técnicos registrados todavía</p>
                 <p className="text-slate-400 dark:text-slate-500 text-xs mt-1 mb-4">Comienza agregando al primer especialista al equipo de trabajo.</p>
-                <button onClick={() => setModalAbierto(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow-sm cursor-pointer">
-                  Agregar tu primer técnico
-                </button>
+                {esAdmin && (
+                  <button onClick={() => setModalAbierto(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow-sm cursor-pointer">
+                    Agregar tu primer técnico
+                  </button>
+                )}
               </div>
             )}
             
             {tecnicos.map((t, index) => {
-              // Se bloquea visualmente si el plan es Profesional (1) y está en la posición 6 en adelante (índice >= 5)
               const estaBloqueadoPorPlan = planTaller === 1 && index >= 5
 
               return (
@@ -231,13 +243,16 @@ function Tecnicos() {
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => setTecnicoAEliminar(t)}
-                          className="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 p-2 rounded-xl transition-colors cursor-pointer"
-                          title="Eliminar técnico"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {/* BOTÓN BASURERO ELIMINAR: Visible para Administrador */}
+                        {esAdmin && (
+                          <button
+                            onClick={() => setTecnicoAEliminar(t)}
+                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 p-2 rounded-xl transition-colors cursor-pointer"
+                            title="Eliminar técnico"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
 
                       <div className={`space-y-1.5 text-xs text-slate-500 dark:text-slate-400 mb-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 ${estaBloqueadoPorPlan ? 'opacity-65' : ''}`}>
@@ -260,14 +275,16 @@ function Tecnicos() {
                         <p className="text-[11px] text-amber-700/90 dark:text-amber-300/90 leading-relaxed">
                           Este técnico supera el límite de 5 activos del Plan Profesional. <strong>Elimínalo</strong> para liberar cupo o vuelve al Plan Empresas.
                         </p>
-                        <div className="flex gap-2 pt-1">
-                          <button
-                            onClick={() => setTecnicoAEliminar(t)}
-                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] py-2 px-3 rounded-xl transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-1"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Eliminar técnico
-                          </button>
-                        </div>
+                        {esAdmin && (
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => setTecnicoAEliminar(t)}
+                              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] py-2 px-3 rounded-xl transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Eliminar técnico
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -305,7 +322,8 @@ function Tecnicos() {
           </div>
         )}
 
-        {modalAbierto && (
+        {/* MODAL NUEVO TÉCNICO: Protegido */}
+        {modalAbierto && esAdmin && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center px-4 z-50">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-[500px] p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
@@ -428,7 +446,7 @@ function Tecnicos() {
           </div>
         )}
 
-        {tecnicoAEliminar && (
+        {tecnicoAEliminar && esAdmin && (
           <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center px-4 z-50">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-sm p-8 shadow-2xl text-center transition-colors">
               <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-500/10 border-8 border-red-50 dark:border-red-500/10 flex items-center justify-center mx-auto mb-5 transition-colors">

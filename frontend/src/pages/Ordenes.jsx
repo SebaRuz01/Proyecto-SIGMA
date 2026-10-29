@@ -204,7 +204,7 @@ function Ordenes() {
       alert(`¡Correo enviado con éxito a ${orden.cliente_email || 'correo del cliente'} con la fecha estimada de entrega!`)
     } catch (err) {
       if (err.response?.status === 403) {
-        alert('Esta función avanzada de notificaciones por IA requiere el Plan Empresas.')
+        alert('Esta función avanzada de notificaciones por IA requiere permisos o el Plan Empresas.')
       } else {
         alert('Error al enviar el correo desde el servidor.')
       }
@@ -418,7 +418,6 @@ function Ordenes() {
     }
   }
 
-  // Filtrado de técnicos disponibles para el selector según el plan
   const tecnicosDisponiblesSelect = tecnicos.filter((t, index) => {
     if (planTaller === 1) {
       return index < 5
@@ -596,15 +595,15 @@ function Ordenes() {
                                           {formatearFechaCorta(o.fecha_estimada)}
                                         </span>
                                       </div>
-                                      {esAdminTaller && (
-                                        <button
-                                          onClick={(e) => enviarCorreoCliente(o, e)}
-                                          disabled={enviandoCorreo === o.id}
-                                          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
-                                        >
-                                          <Mail className="w-3 h-3" /> {enviandoCorreo === o.id ? 'Enviando...' : 'Notificar al cliente (Email)'}
-                                        </button>
-                                      )}
+                                      
+                                      {/* MODIFICACIÓN: Permitido tanto para admin_taller como tecnico */}
+                                      <button
+                                        onClick={(e) => enviarCorreoCliente(o, e)}
+                                        disabled={enviandoCorreo === o.id}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
+                                      >
+                                        <Mail className="w-3 h-3" /> {enviandoCorreo === o.id ? 'Enviando...' : 'Notificar al cliente (Email)'}
+                                      </button>
                                     </div>
                                   ) : (
                                     <div className="pt-1">
